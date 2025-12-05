@@ -1,16 +1,28 @@
 import streamlit as st
 import pandas as pd
-import random
 import uuid
+import random
 
-# --- CONFIGURATION (EDIT THIS SECTION TO CHANGE YOUR GAME) ---
-# You can change these lists to update the options in your game
-ATTRIBUTES = {
-    "location": ["Home Delivery", "Service Point", "Collect at Shop"],
-    "speed": ["Standard (2-4 days)", "Express (Next Day)"],
-    "threshold": ["None", "Free at ≥399 SEK", "Free at ≥699 SEK"],
-    "price": [0, 49, 69, 99]
-}
+# --- FIXED EXPERIMENTAL DESIGN (16 EFFICIENT PROFILES) ---
+# These are the 16 rows selected using D-Efficiency criteria.
+FIXED_DESIGN = [
+    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 69},
+    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 49},
+    {"Location": "Service Point",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 99},
+    {"Location": "Service Point",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 0},
+    {"Location": "Collect at Shop", "Speed": "Express (Next Day)",  "Threshold": "Free at ≥399 SEK", "Price": 69},
+    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 49},
+    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "Free at ≥699 SEK", "Price": 69},
+    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 99},
+    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 99},
+    {"Location": "Collect at Shop", "Speed": "Express (Next Day)",  "Threshold": "Free at ≥699 SEK", "Price": 0},
+    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 0},
+    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 49},
+    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 69},
+    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "Free at ≥399 SEK", "Price": 49},
+    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 99},
+    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 0},
+]
 
 SCENARIO_TEXT = """
 **Imagine you are buying a pair of sneakers online for 500 SEK.**
@@ -18,33 +30,41 @@ You are at the checkout. Please look at the options below and choose
 the delivery method you would actually pay for in real life.
 """
 
-# --- APP LOGIC ---
-
-def generate_option():
-    """Generates a random product profile based on attributes."""
-    return {
-        "Location": random.choice(ATTRIBUTES["location"]),
-        "Speed": random.choice(ATTRIBUTES["speed"]),
-        "Threshold": random.choice(ATTRIBUTES["threshold"]),
-        "Price": random.choice(ATTRIBUTES["price"])
-    }
-
 def initialize_session():
     """Sets up the user's session variables."""
     if 'user_id' not in st.session_state:
         st.session_state.user_id = str(uuid.uuid4())
+        
+        # Shuffle the design so every user sees pairs in a different order
+        # We work with a copy to avoid messing up the global constant
+        design_copy = FIXED_DESIGN.copy()
+        random.shuffle(design_copy)
+        st.session_state.user_design = design_copy
+        
     if 'data' not in st.session_state:
         st.session_state.data = []
     if 'round' not in st.session_state:
-        st.session_state.round = 1
-    if 'current_options' not in st.session_state:
-        st.session_state.current_options = [generate_option(), generate_option()]
+        st.session_state.round = 0 # Start at 0 index
+
+def get_current_options():
+    """Gets the next 2 profiles from the shuffled user_design list."""
+    # Index for Option A is round * 2
+    # Index for Option B is round * 2 + 1
+    idx = st.session_state.round * 2
+    
+    # Check if we have run out of designs (8 rounds x 2 profiles = 16)
+    if idx >= len(st.session_state.user_design):
+        return None, None
+        
+    opt_a = st.session_state.user_design[idx]
+    opt_b = st.session_state.user_design[idx+1]
+    return opt_a, opt_b
 
 def save_choice(choice_label, options):
-    """Saves the user's choice and the attributes of what they saw."""
+    """Saves the user's choice and the attributes."""
     row = {
         "user_id": st.session_state.user_id,
-        "round": st.session_state.round,
+        "round_number": st.session_state.round + 1,
         "choice": choice_label,
         # Option A Attributes
         "optA_loc": options[0]["Location"],
@@ -59,8 +79,6 @@ def save_choice(choice_label, options):
     }
     st.session_state.data.append(row)
     st.session_state.round += 1
-    # Generate new options for the next round
-    st.session_state.current_options = [generate_option(), generate_option()]
 
 # --- UI LAYOUT ---
 st.set_page_config(page_title="Delivery Choice Experiment", layout="wide")
@@ -69,54 +87,59 @@ initialize_session()
 
 st.title("🛒 Delivery Choice Game")
 st.markdown(SCENARIO_TEXT)
-st.progress(min(st.session_state.round / 10, 1.0))
-st.write(f"Question {st.session_state.round} of 10")
 
-# Get current options
-opt_a, opt_b = st.session_state.current_options
+# Logic to check if game is finished
+opt_a, opt_b = get_current_options()
 
-# Create Columns for the Choice Cards
-col1, col2, col3 = st.columns([1, 1, 0.5])
+if opt_a:
+    # Game in progress
+    progress = (st.session_state.round) / 8 # 8 rounds total
+    st.progress(progress)
+    st.write(f"Question {st.session_state.round + 1} of 8")
 
-# OPTION A CARD
-with col1:
-    st.info("### Option A")
-    st.metric(label="Price", value=f"{opt_a['Price']} SEK")
-    st.write(f"**Location:** {opt_a['Location']}")
-    st.write(f"**Speed:** {opt_a['Speed']}")
-    st.write(f"**Free Ship Rule:** {opt_a['Threshold']}")
-    if st.button("Choose Option A", use_container_width=True):
-        save_choice("A", [opt_a, opt_b])
-        st.rerun()
+    col1, col2, col3 = st.columns([1, 1, 0.5])
 
-# OPTION B CARD
-with col2:
-    st.success("### Option B")
-    st.metric(label="Price", value=f"{opt_b['Price']} SEK")
-    st.write(f"**Location:** {opt_b['Location']}")
-    st.write(f"**Speed:** {opt_b['Speed']}")
-    st.write(f"**Free Ship Rule:** {opt_b['Threshold']}")
-    if st.button("Choose Option B", use_container_width=True):
-        save_choice("B", [opt_a, opt_b])
-        st.rerun()
+    # OPTION A CARD
+    with col1:
+        st.info("### Option A")
+        st.metric(label="Price", value=f"{opt_a['Price']} SEK")
+        st.write(f"**Location:** {opt_a['Location']}")
+        st.write(f"**Speed:** {opt_a['Speed']}")
+        st.write(f"**Free Ship Rule:** {opt_a['Threshold']}")
+        if st.button("Choose Option A", use_container_width=True):
+            save_choice("A", [opt_a, opt_b])
+            st.rerun()
 
-# OPTION NONE
-with col3:
-    st.warning("### None")
-    st.write("I would not choose either.")
-    st.write("- Cancel Purchase")
-    st.write("- Go to competitor")
-    st.write(" ") # Spacer
-    st.write(" ") # Spacer
-    if st.button("Choose None", use_container_width=True):
-        save_choice("None", [opt_a, opt_b])
-        st.rerun()
+    # OPTION B CARD
+    with col2:
+        st.success("### Option B")
+        st.metric(label="Price", value=f"{opt_b['Price']} SEK")
+        st.write(f"**Location:** {opt_b['Location']}")
+        st.write(f"**Speed:** {opt_b['Speed']}")
+        st.write(f"**Free Ship Rule:** {opt_b['Threshold']}")
+        if st.button("Choose Option B", use_container_width=True):
+            save_choice("B", [opt_a, opt_b])
+            st.rerun()
 
-st.divider()
+    # OPTION NONE
+    with col3:
+        st.warning("### None")
+        st.write("I would not choose either.")
+        st.write("- Cancel Purchase")
+        st.write(" ") 
+        st.write(" ") 
+        if st.button("Choose None", use_container_width=True):
+            save_choice("None", [opt_a, opt_b])
+            st.rerun()
 
-# --- ADMIN / DATA DOWNLOAD ---
-with st.expander("Admin: Download Data"):
-    st.write("When you have finished testing, download your choices here.")
+else:
+    # Game Finished
+    st.progress(1.0)
+    st.balloons()
+    st.success("## Thank you! You have completed the survey.")
+    
+    # --- ADMIN / DATA DOWNLOAD ---
+    st.write("Please download your response data below:")
     if st.session_state.data:
         df = pd.DataFrame(st.session_state.data)
         st.dataframe(df)
@@ -128,5 +151,3 @@ with st.expander("Admin: Download Data"):
             "text/csv",
             key='download-csv'
         )
-    else:
-        st.write("No data yet.")
