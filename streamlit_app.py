@@ -3,151 +3,198 @@ import pandas as pd
 import uuid
 import random
 
-# --- FIXED EXPERIMENTAL DESIGN (16 EFFICIENT PROFILES) ---
-# These are the 16 rows selected using D-Efficiency criteria.
-FIXED_DESIGN = [
-    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 69},
-    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 49},
-    {"Location": "Service Point",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 99},
-    {"Location": "Service Point",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 0},
-    {"Location": "Collect at Shop", "Speed": "Express (Next Day)",  "Threshold": "Free at ≥399 SEK", "Price": 69},
-    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 49},
-    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "Free at ≥699 SEK", "Price": 69},
-    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "None",             "Price": 99},
-    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 99},
-    {"Location": "Collect at Shop", "Speed": "Express (Next Day)",  "Threshold": "Free at ≥699 SEK", "Price": 0},
-    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 0},
-    {"Location": "Collect at Shop", "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥399 SEK", "Price": 49},
-    {"Location": "Service Point",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 69},
-    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "Free at ≥399 SEK", "Price": 49},
-    {"Location": "Home Delivery",   "Speed": "Express (Next Day)",  "Threshold": "None",             "Price": 99},
-    {"Location": "Home Delivery",   "Speed": "Standard (2-4 days)", "Threshold": "Free at ≥699 SEK", "Price": 0},
-]
+# --- CONFIGURATION OF LEVELS ---
+LEVELS = {
+    # Nest A: Pickup Standard
+    "Pickup Standard": {
+        "labels": ["Service Point", "Parcel Locker"], 
+        "prices": [29, 39],
+        "thresholds": [199, 249, 299],
+        "speed": "2-4 days"
+    },
+    # Nest A: Pickup Express
+    "Pickup Express": {
+        "labels": ["Service Point", "Parcel Locker"], 
+        "prices": [39, 49],
+        "thresholds": [9999], # 9999 denotes "Not Free"
+        "speed": "Express (Next Day)"
+    },
+    # Nest B: Home Standard
+    "Home Standard": {
+        "labels": ["Home Delivery"],
+        "prices": [59, 79],
+        "thresholds": [799, 899, 999],
+        "speed": "2-4 days"
+    },
+    # Nest B: Home Express
+    "Home Express": {
+        "labels": ["Home Delivery"],
+        "prices": [99, 129],
+        "thresholds": [9999],
+        "speed": "Express (Next Day)"
+    },
+    # Nest C: Shop
+    "Shop Collect": {
+        "labels": ["Collect in Shop"],
+        "prices": [19, 29],
+        "thresholds": [199, 249, 299],
+        "speed": "2-4 days"
+    }
+}
 
-SCENARIO_TEXT = """
-**Imagine you are buying a pair of sneakers online for 500 SEK.**
-You are at the checkout. Please look at the options below and choose 
-the delivery method you would actually pay for in real life.
-"""
+def generate_scenario():
+    """
+    1. Randomizes the User's Cart Value (to test thresholds).
+    2. Generates the 5 options based on your levels.
+    """
+    # Random cart value between 150 and 950 (rounded to nearest 10)
+    cart_value = random.randint(15, 95) * 10
+    
+    menu_options = {}
+    
+    for key, attrs in LEVELS.items():
+        # 1. Randomize Attributes
+        label_text = random.choice(attrs["labels"])
+        base_price = random.choice(attrs["prices"])
+        threshold = random.choice(attrs["thresholds"])
+        
+        # 2. Calculate Final Price (The Logic)
+        if cart_value >= threshold:
+            final_price = 0
+            is_free = True
+        else:
+            final_price = base_price
+            is_free = False
+            
+        menu_options[key] = {
+            "display_label": label_text,
+            "speed": attrs["speed"],
+            "base_price": base_price,
+            "threshold": threshold,
+            "final_price": final_price,
+            "is_free": is_free
+        }
+        
+    return cart_value, menu_options
 
 def initialize_session():
-    """Sets up the user's session variables."""
     if 'user_id' not in st.session_state:
         st.session_state.user_id = str(uuid.uuid4())
-        
-        # Shuffle the design so every user sees pairs in a different order
-        # We work with a copy to avoid messing up the global constant
-        design_copy = FIXED_DESIGN.copy()
-        random.shuffle(design_copy)
-        st.session_state.user_design = design_copy
-        
     if 'data' not in st.session_state:
         st.session_state.data = []
     if 'round' not in st.session_state:
-        st.session_state.round = 0 # Start at 0 index
+        st.session_state.round = 1
+    if 'current_scenario' not in st.session_state:
+        st.session_state.current_scenario = generate_scenario()
 
-def get_current_options():
-    """Gets the next 2 profiles from the shuffled user_design list."""
-    # Index for Option A is round * 2
-    # Index for Option B is round * 2 + 1
-    idx = st.session_state.round * 2
+def save_choice(choice_key):
+    cart, menu = st.session_state.current_scenario
     
-    # Check if we have run out of designs (8 rounds x 2 profiles = 16)
-    if idx >= len(st.session_state.user_design):
-        return None, None
-        
-    opt_a = st.session_state.user_design[idx]
-    opt_b = st.session_state.user_design[idx+1]
-    return opt_a, opt_b
-
-def save_choice(choice_label, options):
-    """Saves the user's choice and the attributes."""
     row = {
         "user_id": st.session_state.user_id,
-        "round_number": st.session_state.round + 1,
-        "choice": choice_label,
-        # Option A Attributes
-        "optA_loc": options[0]["Location"],
-        "optA_spd": options[0]["Speed"],
-        "optA_thr": options[0]["Threshold"],
-        "optA_prc": options[0]["Price"],
-        # Option B Attributes
-        "optB_loc": options[1]["Location"],
-        "optB_spd": options[1]["Speed"],
-        "optB_thr": options[1]["Threshold"],
-        "optB_prc": options[1]["Price"],
+        "round": st.session_state.round,
+        "cart_value": cart,
+        "choice": choice_key, # This is the dependent variable (Y)
     }
+    
+    # Save the attributes of ALL alternatives (Independent variables X)
+    # We need to know what the prices were for the options NOT chosen too.
+    for key, data in menu.items():
+        row[f"{key}_label"] = data['display_label'] # Was it Locker or Service Point?
+        row[f"{key}_price"] = data['final_price']
+        row[f"{key}_base_price"] = data['base_price']
+        row[f"{key}_threshold"] = data['threshold']
+    
     st.session_state.data.append(row)
     st.session_state.round += 1
+    st.session_state.current_scenario = generate_scenario()
 
 # --- UI LAYOUT ---
-st.set_page_config(page_title="Delivery Choice Experiment", layout="wide")
-
+st.set_page_config(page_title="H&M Delivery Study", layout="centered")
 initialize_session()
 
-st.title("🛒 Delivery Choice Game")
-st.markdown(SCENARIO_TEXT)
+cart_val, menu = st.session_state.current_scenario
 
-# Logic to check if game is finished
-opt_a, opt_b = get_current_options()
+st.title("📦 Checkout Simulation")
+st.markdown(f"""
+You have added items to your cart worth **{cart_val} SEK**.
+Based on this amount, review your delivery options below.
+""")
+st.progress(st.session_state.round / 10)
 
-if opt_a:
-    # Game in progress
-    progress = (st.session_state.round) / 8 # 8 rounds total
-    st.progress(progress)
-    st.write(f"Question {st.session_state.round + 1} of 8")
+# --- DISPLAY THE 5 OPTIONS ---
+st.write("---")
 
-    col1, col2, col3 = st.columns([1, 1, 0.5])
+selection = st.radio(
+    "Select your delivery method:",
+    options=list(menu.keys()),
+    format_func=lambda x: f"TEMP_LABEL", # Placeholder, we use custom logic below
+    label_visibility="collapsed"
+)
 
-    # OPTION A CARD
-    with col1:
-        st.info("### Option A")
-        st.metric(label="Price", value=f"{opt_a['Price']} SEK")
-        st.write(f"**Location:** {opt_a['Location']}")
-        st.write(f"**Speed:** {opt_a['Speed']}")
-        st.write(f"**Free Ship Rule:** {opt_a['Threshold']}")
-        if st.button("Choose Option A", use_container_width=True):
-            save_choice("A", [opt_a, opt_b])
-            st.rerun()
+# Custom formatting for the radio buttons is hard in Streamlit, 
+# so we visualize the options above and use the radio just for selection.
 
-    # OPTION B CARD
-    with col2:
-        st.success("### Option B")
-        st.metric(label="Price", value=f"{opt_b['Price']} SEK")
-        st.write(f"**Location:** {opt_b['Location']}")
-        st.write(f"**Speed:** {opt_b['Speed']}")
-        st.write(f"**Free Ship Rule:** {opt_b['Threshold']}")
-        if st.button("Choose Option B", use_container_width=True):
-            save_choice("B", [opt_a, opt_b])
-            st.rerun()
-
-    # OPTION NONE
-    with col3:
-        st.warning("### None")
-        st.write("I would not choose either.")
-        st.write("- Cancel Purchase")
-        st.write(" ") 
-        st.write(" ") 
-        if st.button("Choose None", use_container_width=True):
-            save_choice("None", [opt_a, opt_b])
-            st.rerun()
-
+# 1. PICKUP STANDARD
+p1 = menu["Pickup Standard"]
+st.info(f"**1. {p1['display_label']}** ({p1['speed']})")
+if p1['is_free']:
+    st.markdown(f"**Cost: 0 kr** (Free because cart > {p1['threshold']} kr)")
 else:
-    # Game Finished
-    st.progress(1.0)
-    st.balloons()
-    st.success("## Thank you! You have completed the survey.")
-    
-    # --- ADMIN / DATA DOWNLOAD ---
-    st.write("Please download your response data below:")
-    if st.session_state.data:
-        df = pd.DataFrame(st.session_state.data)
-        st.dataframe(df)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "Download CSV",
-            csv,
-            "experiment_data.csv",
-            "text/csv",
-            key='download-csv'
-        )
+    st.markdown(f"**Cost: {p1['final_price']} kr** (Free at {p1['threshold']} kr)")
+
+# 2. PICKUP EXPRESS
+p2 = menu["Pickup Express"]
+st.info(f"**2. {p2['display_label']}** ({p2['speed']})")
+st.markdown(f"**Cost: {p2['final_price']} kr**")
+
+# 3. HOME STANDARD
+p3 = menu["Home Standard"]
+st.success(f"**3. {p3['display_label']}** ({p3['speed']})")
+if p3['is_free']:
+    st.markdown(f"**Cost: 0 kr** (Free because cart > {p3['threshold']} kr)")
+else:
+    st.markdown(f"**Cost: {p3['final_price']} kr** (Free at {p3['threshold']} kr)")
+
+# 4. HOME EXPRESS
+p4 = menu["Home Express"]
+st.success(f"**4. {p4['display_label']}** ({p4['speed']})")
+st.markdown(f"**Cost: {p4['final_price']} kr**")
+
+# 5. SHOP
+p5 = menu["Shop Collect"]
+st.warning(f"**5. {p5['display_label']}** ({p5['speed']})")
+if p5['is_free']:
+    st.markdown(f"**Cost: 0 kr** (Free because cart > {p5['threshold']} kr)")
+else:
+    st.markdown(f"**Cost: {p5['final_price']} kr** (Free at {p5['threshold']} kr)")
+
+st.write("---")
+
+# Selection Buttons
+c1, c2, c3, c4, c5 = st.columns(5)
+if c1.button("Select Opt 1"):
+    save_choice("Pickup Standard")
+    st.rerun()
+if c2.button("Select Opt 2"):
+    save_choice("Pickup Express")
+    st.rerun()
+if c3.button("Select Opt 3"):
+    save_choice("Home Standard")
+    st.rerun()
+if c4.button("Select Opt 4"):
+    save_choice("Home Express")
+    st.rerun()
+if c5.button("Select Opt 5"):
+    save_choice("Shop Collect")
+    st.rerun()
+
+st.write(" ")
+if st.button("🚫 I would not buy (Abandon Cart)"):
+    save_choice("None")
+    st.rerun()
+
+# --- ADMIN ---
+if st.session_state.data:
+    with st.expander("Show Data (For Analysis)"):
+        st.dataframe(pd.DataFrame(st.session_state.data))
