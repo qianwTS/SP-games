@@ -1,0 +1,17 @@
+Scenario_ID,Locker_Price,Locker_Threshold,Locker_Exp_Price,Home_Price,Home_Threshold,Home_Exp_Price,Shop_Price,Shop_Threshold,Context_Cart_Value,Context_Label,Locker_Final_Cost,Locker_TopUp_Gap,Locker_Display,Home_Final_Cost,Home_TopUp_Gap,Home_Display,Shop_Final_Cost,Shop_TopUp_Gap,Shop_Display,Locker_Exp_Display,Home_Exp_Display
+1,39,299,49,79,899,129,19,149,240,Small Basket (240kr),39,59,Pay 39 or Add 59,79,659,Pay 79 or Add 659,0,0,FREE,Pay 49,Pay 129
+2,29,199,49,79,899,99,19,249,240,Small Basket (240kr),0,0,FREE,79,659,Pay 79 or Add 659,19,9,Pay 19 or Add 9,Pay 49,Pay 99
+3,29,299,59,59,899,129,19,249,240,Small Basket (240kr),29,59,Pay 29 or Add 59,59,659,Pay 59 or Add 659,19,9,Pay 19 or Add 9,Pay 59,Pay 129
+4,39,299,49,59,799,99,19,249,240,Small Basket (240kr),39,59,Pay 39 or Add 59,59,559,Pay 59 or Add 559,19,9,Pay 19 or Add 9,Pay 49,Pay 99
+5,29,299,49,59,899,99,29,249,240,Small Basket (240kr),29,59,Pay 29 or Add 59,59,659,Pay 59 or Add 659,29,9,Pay 29 or Add 9,Pay 49,Pay 99
+6,29,199,49,79,799,99,19,149,240,Small Basket (240kr),0,0,FREE,79,559,Pay 79 or Add 559,0,0,FREE,Pay 49,Pay 99
+7,39,299,59,79,799,99,19,149,240,Small Basket (240kr),39,59,Pay 39 or Add 59,79,559,Pay 79 or Add 559,0,0,FREE,Pay 59,Pay 99
+8,29,299,49,79,799,129,29,249,240,Small Basket (240kr),29,59,Pay 29 or Add 59,79,559,Pay 79 or Add 559,29,9,Pay 29 or Add 9,Pay 49,Pay 129
+9,29,199,49,59,799,99,19,149,750,Big Basket (750kr),0,0,FREE,59,49,Pay 59 or Add 49,0,0,FREE,Pay 49,Pay 99
+10,29,199,49,59,799,129,19,149,750,Big Basket (750kr),0,0,FREE,59,49,Pay 59 or Add 49,0,0,FREE,Pay 49,Pay 129
+11,29,199,49,79,799,129,19,149,750,Big Basket (750kr),0,0,FREE,79,49,Pay 79 or Add 49,0,0,FREE,Pay 49,Pay 129
+12,29,199,59,79,899,99,19,149,750,Big Basket (750kr),0,0,FREE,79,149,Pay 79 or Add 149,0,0,FREE,Pay 59,Pay 99
+13,29,199,59,79,799,129,19,149,750,Big Basket (750kr),0,0,FREE,79,49,Pay 79 or Add 49,0,0,FREE,Pay 59,Pay 129
+14,29,199,59,59,899,129,19,149,750,Big Basket (750kr),0,0,FREE,59,149,Pay 59 or Add 149,0,0,FREE,Pay 59,Pay 129
+15,29,199,59,59,799,99,19,149,750,Big Basket (750kr),0,0,FREE,59,49,Pay 59 or Add 49,0,0,FREE,Pay 59,Pay 99
+16,29,199,59,59,799,129,19,149,750,Big Basket (750kr),0,0,FREE,59,49,Pay 59 or Add 49,0,0,FREE,Pay 59,Pay 129
