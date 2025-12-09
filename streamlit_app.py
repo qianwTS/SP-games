@@ -60,9 +60,7 @@ def generate_full_factorial():
 
 def calculate_scenario_logic(df, cart_value):
     """
-    Applies the Top-Up Logic:
-    If Cart Value < Threshold: User sees Price OR Top-Up Gap.
-    If Cart Value >= Threshold: User sees FREE.
+    Applies the Top-Up Logic and removes illogical hierarchy combinations.
     """
     # Create a copy to avoid SettingWithCopy warnings
     res = df.copy()
@@ -94,11 +92,28 @@ def calculate_scenario_logic(df, cart_value):
     res['Locker_Exp_Display'] = res['Locker_Exp_Price'].apply(lambda x: f"Pay {x}")
     res['Home_Exp_Display'] = res['Home_Exp_Price'].apply(lambda x: f"Pay {x}")
 
+    # ==========================================
+    # LOGIC FILTER 1: ELIMINATE DOUBLE FREE
+    # ==========================================
     # If Home is Free (Gap=0) AND Locker is Free (Gap=0), DROP IT.
     mask_double_free = (res['Home_TopUp_Gap'] == 0) & (res['Locker_TopUp_Gap'] == 0)
     
-    # Keep only rows where mask is False
-    res_filtered = res[~mask_double_free].copy()
+    # ==========================================
+    # LOGIC FILTER 2: ENFORCE HIERARCHY
+    # ==========================================
+    # 1. If Locker is Free, Shop MUST be Free. 
+    # (You can't have a stricter rule for the cheaper method).
+    mask_illogical_shop = (res['Locker_TopUp_Gap'] == 0) & (res['Shop_TopUp_Gap'] > 0)
+
+    # 2. If Home is Free, Locker MUST be Free.
+    # (You can't have Home Delivery be easier to get than a Locker).
+    mask_illogical_locker = (res['Home_TopUp_Gap'] == 0) & (res['Locker_TopUp_Gap'] > 0)
+
+    # Combine all filters (Keep rows that are NOT problematic)
+    # We want rows where: NOT(DoubleFree) AND NOT(IllogicalShop) AND NOT(IllogicalLocker)
+    mask_bad = mask_double_free | mask_illogical_shop | mask_illogical_locker
+    
+    res_filtered = res[~mask_bad].copy()
 
     return res_filtered
 
