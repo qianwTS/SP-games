@@ -94,7 +94,13 @@ def calculate_scenario_logic(df, cart_value):
     res['Locker_Exp_Display'] = res['Locker_Exp_Price'].apply(lambda x: f"Pay {x}")
     res['Home_Exp_Display'] = res['Home_Exp_Price'].apply(lambda x: f"Pay {x}")
 
-    return res
+    # If Home is Free (Gap=0) AND Locker is Free (Gap=0), DROP IT.
+    mask_double_free = (res['Home_TopUp_Gap'] == 0) & (res['Locker_TopUp_Gap'] == 0)
+    
+    # Keep only rows where mask is False
+    res_filtered = res[~mask_double_free].copy()
+
+    return res_filtered
 
 # --- 3. EXECUTION ---
 
