@@ -155,7 +155,13 @@ else:
                 
         else:
             # 2. Standard Scenario (Just Pay or Just Free)
-            if st.button(f"💰 ({display_text})", key=f"btn_std_{col_key}"):
+            # LOGIC: Check if it contains "FREE"
+            if "FREE" in display_text.upper():
+                btn_label = f"✅ {display_text}"
+            else:
+                btn_label = f"💰 {display_text}"
+            
+            if st.button(btn_label, key=f"btn_std_{col_key}"):
                 submit_answer(f"{label_base}_FLAT", scenario_id, context_label)
                 st.rerun()
 
