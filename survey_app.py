@@ -166,8 +166,9 @@ else:
             submit_answer("Locker_Express", row['Scenario_ID'], row['Context_Label'])
             st.rerun()
             
-    with c5:
-        st.secondary("**Store Collect** (ASAP)")
+  with c5:
+        # FIXED: st.secondary does not exist. Using st.info instead.
+        st.info("**Store Collect** (ASAP)") 
         st.markdown(f"#### {row['Shop_Display']}")
         if st.button("Choose Store", key=f"btn_shop_{q_idx}"):
             submit_answer("Shop_Collect", row['Scenario_ID'], row['Context_Label'])
