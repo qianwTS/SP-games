@@ -140,7 +140,7 @@ else:
             st.rerun()
 
     with c2:
-        st.warning("**Express Home** (1-2 Days)")
+        st.warning("**Express Home** (next day)")
         st.markdown(f"#### {row['Home_Exp_Display']}")
         if st.button("Choose Express Home", key=f"btn_home_exp_{q_idx}"):
             submit_answer("Home_Express", row['Scenario_ID'], row['Context_Label'])
@@ -160,7 +160,7 @@ else:
             st.rerun()
 
     with c4:
-        st.warning("**Express Locker** (1-2 Days)")
+        st.warning("**Express Locker** (next day)")
         st.markdown(f"#### {row['Locker_Exp_Display']}")
         if st.button("Choose Express Locker", key=f"btn_lock_exp_{q_idx}"):
             submit_answer("Locker_Express", row['Scenario_ID'], row['Context_Label'])
@@ -168,7 +168,7 @@ else:
             
     with c5:
         # FIXED: st.secondary does not exist. Using st.info instead.
-        st.info("**Store Collect** (ASAP)") 
+        st.info("**Store Collect** (2-4 Days)") 
         st.markdown(f"#### {row['Shop_Display']}")
         if st.button("Choose Store", key=f"btn_shop_{q_idx}"):
             submit_answer("Shop_Collect", row['Scenario_ID'], row['Context_Label'])
