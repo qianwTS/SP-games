@@ -178,7 +178,7 @@ else:
         render_split_choice("Home_Standard", clean_disp, f"h_std_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
     with c2:
-        st.warning("**Express Home** (1-2 Days)")
+        st.warning("**Express Home** (Next Day)")
         # Express is usually just "Pay X", so this will likely render 1 button
         render_split_choice("Home_Express", row['Home_Exp_Display'], f"h_exp_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
@@ -194,7 +194,7 @@ else:
         render_split_choice("Locker_Standard", row['Locker_Display'], f"l_std_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
     with c4:
-        st.warning("**Express Locker** (1-2 Days)")
+        st.warning("**Express Locker** (Nest Day)")
         render_split_choice("Locker_Express", row['Locker_Exp_Display'], f"l_exp_{q_idx}", row['Context_Label'], row['Scenario_ID'])
             
     with c5:
