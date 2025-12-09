@@ -191,7 +191,7 @@ else:
         render_split_choice("Locker_Express", row['Locker_Exp_Display'], f"l_exp_{q_idx}", row['Context_Label'], row['Scenario_ID'])
             
     with c5:
-        st.info("**Store Collect** (ASAP)")
+        st.info("**Store Collect** (2-4 Days)")
         render_split_choice("Shop_Collect", row['Shop_Display'], f"s_col_{q_idx}", row['Context_Label'], row['Scenario_ID'])
             
   
