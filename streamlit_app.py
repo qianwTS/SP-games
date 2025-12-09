@@ -60,59 +60,51 @@ def generate_full_factorial():
 
 def calculate_scenario_logic(df, cart_value):
     """
-    Applies the Top-Up Logic and removes illogical hierarchy combinations.
+    Applies Top-Up Logic AND Filtering.
     """
-    # Create a copy to avoid SettingWithCopy warnings
     res = df.copy()
     
-    # Define the Logic Function
+    # Logic Helper
     def get_offer(price, threshold, cart):
         if cart >= threshold:
-            return 0, 0, "FREE" # Cost is 0, Gap is 0
+            return 0, 0, "FREE"
         else:
             gap = threshold - cart
             return price, gap, f"Pay {price} or Add {gap}"
 
-    # Apply to Locker
+    # 1. Calculate Costs & Gaps
     res['Locker_Final_Cost'], res['Locker_TopUp_Gap'], res['Locker_Display'] = zip(*res.apply(
         lambda x: get_offer(x['Locker_Price'], x['Locker_Threshold'], cart_value), axis=1
     ))
-
-    # Apply to Home
     res['Home_Final_Cost'], res['Home_TopUp_Gap'], res['Home_Display'] = zip(*res.apply(
         lambda x: get_offer(x['Home_Price'], x['Home_Threshold'], cart_value), axis=1
     ))
-
-    # Apply to Shop
     res['Shop_Final_Cost'], res['Shop_TopUp_Gap'], res['Shop_Display'] = zip(*res.apply(
         lambda x: get_offer(x['Shop_Price'], x['Shop_Threshold'], cart_value), axis=1
     ))
     
-    # Express Options (Never Free)
+    # Express Displays
     res['Locker_Exp_Display'] = res['Locker_Exp_Price'].apply(lambda x: f"Pay {x}")
     res['Home_Exp_Display'] = res['Home_Exp_Price'].apply(lambda x: f"Pay {x}")
 
     # ==========================================
-    # LOGIC FILTER 1: ELIMINATE DOUBLE FREE
+    # LOGIC FILTERS
     # ==========================================
-    # If Home is Free (Gap=0) AND Locker is Free (Gap=0), DROP IT.
+    
+    # Filter 1: Eliminate Double Free (Home vs Locker)
     mask_double_free = (res['Home_TopUp_Gap'] == 0) & (res['Locker_TopUp_Gap'] == 0)
     
-    # ==========================================
-    # LOGIC FILTER 2: ENFORCE HIERARCHY
-    # ==========================================
-    # 1. If Locker is Free, Shop MUST be Free. 
-    # (You can't have a stricter rule for the cheaper method).
+    # Filter 2: Enforce Hierarchy (Locker vs Shop)
+    # If Locker is Free, Shop MUST be Free.
+    # (Catches your Scenario 2: Locker Free but Shop Paid)
     mask_illogical_shop = (res['Locker_TopUp_Gap'] == 0) & (res['Shop_TopUp_Gap'] > 0)
 
-    # 2. If Home is Free, Locker MUST be Free.
-    # (You can't have Home Delivery be easier to get than a Locker).
+    # Filter 3: Enforce Hierarchy (Home vs Locker)
+    # If Home is Free, Locker MUST be Free.
     mask_illogical_locker = (res['Home_TopUp_Gap'] == 0) & (res['Locker_TopUp_Gap'] > 0)
 
-    # Combine all filters (Keep rows that are NOT problematic)
-    # We want rows where: NOT(DoubleFree) AND NOT(IllogicalShop) AND NOT(IllogicalLocker)
+    # Apply Filters
     mask_bad = mask_double_free | mask_illogical_shop | mask_illogical_locker
-    
     res_filtered = res[~mask_bad].copy()
 
     return res_filtered
