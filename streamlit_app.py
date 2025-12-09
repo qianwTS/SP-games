@@ -1,188 +1,181 @@
 import streamlit as st
 import pandas as pd
-import uuid
-import random
+import itertools
+import numpy as np
 
-# --- CONFIGURATION ---
-ROUNDS_PER_USER = 10
-CART_RANGE = (15, 95) # 150 to 950 SEK
+# --- 1. CONFIGURATION & SIDEBAR ---
+st.set_page_config(layout="wide", page_title="Shipping Choice Experiment Designer")
 
-# Define the levels for randomization
-# We categorize them into "Nests" for your later analysis
-LEVELS = {
-    # NEST A: PICKUP
-    "PickupStandard": {
-        "labels": ["Service Point", "Parcel Locker"], 
-        "speed": "2-4 days",
-        "prices": [29, 39, 49], 
-        "thresholds": [199, 299, 399]
-    },
-    "PickupExpress": {
-        "labels": ["Service Point", "Parcel Locker"], 
-        "speed": "Next Day",
-        "prices": [49, 59, 79], 
-        "thresholds": [9999] # Never free
-    },
-    
-    # NEST B: HOME
-    "HomeStandard": {
-        "labels": ["Home Delivery"],
-        "speed": "2-4 days",
-        "prices": [49, 69, 79], 
-        "thresholds": [599, 799, 999]
-    },
-    "HomeExpress": {
-        "labels": ["Home Delivery"],
-        "speed": "Next Day",
-        "prices": [99, 129, 149], 
-        "thresholds": [9999]
-    },
-    
-    # NEST C: SHOP
-    "ShopCollect": {
-        "labels": ["Collect in Shop"],
-        "speed": "2-4 days",
-        "prices": [0, 19], 
-        "thresholds": [0, 199]
-    }
-}
+st.title("📦 Top-Up Experiment Design Generator")
+st.markdown("""
+This tool generates an experimental design for a **Shipping Choice Study**. 
+It calculates the "Top-Up Gap" (how much extra a user must buy to get free shipping) 
+based on their current cart value.
+""")
 
-def get_effective_price(base, threshold, cart):
-    """Returns 0 if cart meets threshold, else returns base price."""
-    return 0 if cart >= threshold else base
+with st.sidebar:
+    st.header("1. Define Attribute Levels (SEK)")
+    
+    st.subheader("Nest A: Service Point / Locker")
+    locker_prices = st.multiselect("Locker Prices", [29, 39], default=[29, 39])
+    locker_thresh = st.multiselect("Locker Free Thresholds", [199, 299], default=[199, 299])
+    locker_exp_prices = st.multiselect("Locker Express Prices", [49, 59], default=[49, 59])
+    
+    st.subheader("Nest B: Home Delivery")
+    home_prices = st.multiselect("Home Prices", [59, 79], default=[59, 79])
+    home_thresh = st.multiselect("Home Free Thresholds", [799, 999], default=[799, 999])
+    home_exp_prices = st.multiselect("Home Express Prices", [99, 129], default=[99, 129])
+    
+    st.subheader("Nest C: Shop Collect")
+    shop_prices = st.multiselect("Shop Prices", [19, 29], default=[19, 29])
+    shop_thresh = st.multiselect("Shop Free Thresholds", [149, 249], default=[149, 249])
 
-def generate_round():
-    """Generates a single choice task (Menu)."""
-    # 1. Randomize Cart Value
-    cart_value = random.randint(CART_RANGE[0], CART_RANGE[1]) * 10
-    
-    menu = {}
-    for key, attrs in LEVELS.items():
-        # Randomize attributes
-        lbl = random.choice(attrs["labels"])
-        base = random.choice(attrs["prices"])
-        thr = random.choice(attrs["thresholds"])
-        
-        # Calculate final cost
-        cost = get_effective_price(base, thr, cart_value)
-        
-        menu[key] = {
-            "label": lbl,
-            "speed": attrs["speed"],
-            "base_price": base,
-            "threshold": thr,
-            "final_cost": cost,
-            "is_free": (cost == 0)
-        }
-    
-    return cart_value, menu
+    st.header("2. Experiment Settings")
+    n_small = st.number_input("Scenarios for Small Basket", value=8, min_value=1)
+    n_big = st.number_input("Scenarios for Big Basket", value=8, min_value=1)
+    seed = st.number_input("Random Seed (for reproducibility)", value=42)
 
-def initialize_session():
-    if 'user_id' not in st.session_state:
-        st.session_state.user_id = str(uuid.uuid4())
-    if 'data' not in st.session_state:
-        st.session_state.data = []
-    if 'round' not in st.session_state:
-        st.session_state.round = 1
-    if 'current_scenario' not in st.session_state:
-        st.session_state.current_scenario = generate_round()
-    if 'finished' not in st.session_state:
-        st.session_state.finished = False
+# --- 2. GENERATION LOGIC ---
 
-def save_choice(choice_code):
-    cart_val, menu = st.session_state.current_scenario
+def generate_full_factorial():
+    """Generates all possible combinations of attributes."""
+    # Create the Cartesian product of all selected levels
+    combinations = list(itertools.product(
+        locker_prices, locker_thresh,
+        locker_exp_prices,
+        home_prices, home_thresh,
+        home_exp_prices,
+        shop_prices, shop_thresh
+    ))
     
-    # Prepare row data
-    row = {
-        "user_id": st.session_state.user_id,
-        "round": st.session_state.round,
-        "cart_value": cart_val,
-        "choice": choice_code
-    }
+    cols = [
+        "Locker_Price", "Locker_Threshold",
+        "Locker_Exp_Price",
+        "Home_Price", "Home_Threshold",
+        "Home_Exp_Price",
+        "Shop_Price", "Shop_Threshold"
+    ]
     
-    # Log details of ALL options (even unchosen ones) for the Logit Model
-    for k, v in menu.items():
-        row[f"{k}_label"] = v['label']
-        row[f"{k}_cost"] = v['final_cost']
-        row[f"{k}_threshold"] = v['threshold']
-    
-    st.session_state.data.append(row)
-    
-    # Advance Round
-    if st.session_state.round >= ROUNDS_PER_USER:
-        st.session_state.finished = True
-    else:
-        st.session_state.round += 1
-        st.session_state.current_scenario = generate_round()
+    return pd.DataFrame(combinations, columns=cols)
 
-# --- APP UI ---
-st.set_page_config(page_title="Delivery Choice Game", layout="centered")
-initialize_session()
-
-if st.session_state.finished:
-    # --- END SCREEN ---
-    st.balloons()
-    st.success("## Experiment Complete!")
-    st.write("Thank you for your participation.")
+def calculate_scenario_logic(df, cart_value):
+    """
+    Applies the Top-Up Logic:
+    If Cart Value < Threshold: User sees Price OR Top-Up Gap.
+    If Cart Value >= Threshold: User sees FREE.
+    """
+    # Create a copy to avoid SettingWithCopy warnings
+    res = df.copy()
     
-    # Download Button
-    if st.session_state.data:
-        df = pd.DataFrame(st.session_state.data)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "Download Data (CSV)", csv, "survey_data.csv", "text/csv", key='dl-csv'
-        )
+    # Define the Logic Function
+    def get_offer(price, threshold, cart):
+        if cart >= threshold:
+            return 0, 0, "FREE" # Cost is 0, Gap is 0
+        else:
+            gap = threshold - cart
+            return price, gap, f"Pay {price} or Add {gap}"
 
+    # Apply to Locker
+    res['Locker_Final_Cost'], res['Locker_TopUp_Gap'], res['Locker_Display'] = zip(*res.apply(
+        lambda x: get_offer(x['Locker_Price'], x['Locker_Threshold'], cart_value), axis=1
+    ))
+
+    # Apply to Home
+    res['Home_Final_Cost'], res['Home_TopUp_Gap'], res['Home_Display'] = zip(*res.apply(
+        lambda x: get_offer(x['Home_Price'], x['Home_Threshold'], cart_value), axis=1
+    ))
+
+    # Apply to Shop
+    res['Shop_Final_Cost'], res['Shop_TopUp_Gap'], res['Shop_Display'] = zip(*res.apply(
+        lambda x: get_offer(x['Shop_Price'], x['Shop_Threshold'], cart_value), axis=1
+    ))
+    
+    # Express Options (Never Free)
+    res['Locker_Exp_Display'] = res['Locker_Exp_Price'].apply(lambda x: f"Pay {x}")
+    res['Home_Exp_Display'] = res['Home_Exp_Price'].apply(lambda x: f"Pay {x}")
+
+    return res
+
+# --- 3. EXECUTION ---
+
+# 1. Generate Full Matrix
+full_design = generate_full_factorial()
+
+if full_design.empty:
+    st.error("Please select at least one level for every attribute in the sidebar.")
 else:
-    # --- GAME SCREEN ---
-    cart_val, menu = st.session_state.current_scenario
-    
-    st.title("🛍️ Checkout")
-    st.markdown(f"Your cart total is **{cart_val} SEK**.")
-    st.markdown("Choose your delivery method:")
-    
-    # Progress Bar
-    progress = (st.session_state.round - 1) / ROUNDS_PER_USER
-    st.progress(progress)
-    st.caption(f"Question {st.session_state.round} of {ROUNDS_PER_USER}")
+    # 2. Define Contexts (The Baskets)
+    small_basket_val = 240 # SEK
+    big_basket_val = 850   # SEK
 
-    # --- RENDER BUTTONS (The Menu) ---
+    # 3. Sample Balanced Sets
+    # We use random sampling with a seed to simulate an orthogonal selection 
+    # (True orthogonality requires complex library support, but random sampling 
+    # from the full factorial is statistically robust for this sample size).
     
-    def render_option(key, description):
-        # Helper to format the button text cleanly
-        opt = menu[key]
-        price_display = "FREE" if opt['is_free'] else f"{opt['final_cost']} SEK"
+    np.random.seed(seed)
+    
+    # Sample indices for Small Basket
+    idx_small = np.random.choice(full_design.index, n_small, replace=False)
+    df_small = full_design.loc[idx_small].copy()
+    df_small['Context_Cart_Value'] = small_basket_val
+    df_small['Context_Label'] = "Small Basket (240kr)"
+    
+    # Sample indices for Big Basket (try to pick different ones if possible)
+    remaining_idx = full_design.index.difference(idx_small)
+    if len(remaining_idx) < n_big:
+        # Fallback if we run out of unique rows (unlikely here)
+        idx_big = np.random.choice(full_design.index, n_big, replace=False) 
+    else:
+        idx_big = np.random.choice(remaining_idx, n_big, replace=False)
         
-        # Structure: "1. Service Point (Next Day) | 49 SEK"
-        label = f"{description}. {opt['label']} ({opt['speed']}) | {price_display}"
-        
-        # If the user clicks this button
-        if st.button(label, use_container_width=True):
-            save_choice(key)
-            st.rerun()
+    df_big = full_design.loc[idx_big].copy()
+    df_big['Context_Cart_Value'] = big_basket_val
+    df_big['Context_Label'] = "Big Basket (850kr)"
 
-    # 1. Shop
-    render_option("ShopCollect", "1")
+    # 4. Calculate Logic
+    final_small = calculate_scenario_logic(df_small, small_basket_val)
+    final_big = calculate_scenario_logic(df_big, big_basket_val)
     
-    # 2. Pickup Standard
-    render_option("PickupStandard", "2")
-    
-    # 3. Pickup Express
-    render_option("PickupExpress", "3")
-    
-    # 4. Home Standard
-    render_option("HomeStandard", "4")
-    
-    # 5. Home Express
-    render_option("HomeExpress", "5")
-    
-    st.divider()
-    
-    # None Option
-    if st.button("🚫 I would not buy (Abandon Cart)", use_container_width=True):
-        save_choice("None")
-        st.rerun()
+    # Combine
+    final_design = pd.concat([final_small, final_big]).reset_index(drop=True)
+    final_design.index.name = "Scenario_ID"
+    final_design.index += 1 # Start ID at 1
 
-    # --- DEBUG/ADMIN VIEW (Optional) ---
-    # with st.expander("Show Logic (Debug)"):
-    #     st.write(menu)
+    # --- 4. DISPLAY ---
+
+    st.subheader(f"Generated Design ({len(final_design)} Scenarios)")
+    st.caption("The table below shows exactly what to display to the respondent.")
+
+    # Create a simplified view for the user
+    display_cols = [
+        'Context_Label', 
+        'Shop_Display', 
+        'Locker_Display', 
+        'Locker_Exp_Display',
+        'Home_Display', 
+        'Home_Exp_Display'
+    ]
+    
+    st.dataframe(final_design[display_cols], use_container_width=True)
+
+    # --- 5. DETAILED DATA & EXPORT ---
+    
+    with st.expander("View Underlying Data (Prices & Gaps)"):
+        st.write("This data contains the raw numbers for your analysis.")
+        st.dataframe(final_design)
+
+    st.download_button(
+        label="Download Design as CSV",
+        data=final_design.to_csv().encode('utf-8'),
+        file_name='shipping_topup_design.csv',
+        mime='text/csv',
+    )
+    
+    st.info("""
+    **How to read the results:**
+    * **Display Columns:** Use these strings in your survey text (e.g., "Pay 59 or Add 149").
+    * **Gap Columns:** Use these in your analysis to see the 'Price of Free Shipping'.
+    * **Small Basket:** Note how Shop/Locker are the main tests here.
+    * **Big Basket:** Note how Home Delivery is the main test here (Shop/Locker usually Free).
+    """)
