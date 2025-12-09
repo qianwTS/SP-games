@@ -137,7 +137,7 @@ else:
         
     df_big = full_design.loc[idx_big].copy()
     df_big['Context_Cart_Value'] = big_basket_val
-    df_big['Context_Label'] = "Big Basket (850kr)"
+    df_big['Context_Label'] = "Big Basket (750kr)"
 
     # 4. Calculate Logic
     final_small = calculate_scenario_logic(df_small, small_basket_val)
