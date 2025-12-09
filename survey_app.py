@@ -148,7 +148,8 @@ else:
             
             # Button B: Top Up
             # We style this one to look enticing (using type="primary" if available, or emoji)
-            if st.button(f"➕ {add_text} (to you cart to get Free Shipping)", key=f"btn_add_{col_key}"):
+            val_only = add_text.replace("Add ", "")
+            if st.button(f"➕ {val_only} (to 🛒 for Free Ship)", key=f"btn_add_{col_key}"):
                 # We record "Home_Standard_TOPUP"
                 submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
                 st.rerun()
