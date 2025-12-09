@@ -104,6 +104,8 @@ def calculate_scenario_logic(df, cart_value):
 
 # --- 3. EXECUTION ---
 
+# --- 3. EXECUTION (UPDATED WITH DEDUPLICATION) ---
+
 # 1. Generate Full Matrix
 full_design = generate_full_factorial()
 
@@ -111,43 +113,54 @@ if full_design.empty:
     st.error("Please select at least one level for every attribute in the sidebar.")
 else:
     # 2. Define Contexts (The Baskets)
-    small_basket_val = 240 # SEK
-    big_basket_val = 750   # SEK
+    # We use 750 SEK for Big Basket to avoid the "Home Double Free" issue.
+    contexts = [
+        {"val": 240, "label": "Small Basket (240kr)", "n": n_small},
+        {"val": 750, "label": "Big Basket (750kr)",   "n": n_big}
+    ]
 
-    # 3. Sample Balanced Sets
-    # We use random sampling with a seed to simulate an orthogonal selection 
-    # (True orthogonality requires complex library support, but random sampling 
-    # from the full factorial is statistically robust for this sample size).
+    final_dfs = []
     
-    np.random.seed(seed)
-    
-    # Sample indices for Small Basket
-    idx_small = np.random.choice(full_design.index, n_small, replace=False)
-    df_small = full_design.loc[idx_small].copy()
-    df_small['Context_Cart_Value'] = small_basket_val
-    df_small['Context_Label'] = "Small Basket (240kr)"
-    
-    # Sample indices for Big Basket (try to pick different ones if possible)
-    remaining_idx = full_design.index.difference(idx_small)
-    if len(remaining_idx) < n_big:
-        # Fallback if we run out of unique rows (unlikely here)
-        idx_big = np.random.choice(full_design.index, n_big, replace=False) 
-    else:
-        idx_big = np.random.choice(remaining_idx, n_big, replace=False)
+    # We loop through both contexts (Small & Big) to apply the same cleaning logic
+    for ctx in contexts:
+        # A. Apply Logic to the WHOLE universe of combinations first
+        temp_df = full_design.copy()
+        temp_df['Context_Cart_Value'] = ctx['val']
+        temp_df['Context_Label'] = ctx['label']
         
-    df_big = full_design.loc[idx_big].copy()
-    df_big['Context_Cart_Value'] = big_basket_val
-    df_big['Context_Label'] = "Big Basket (750kr)"
+        # Calculate the display strings for all 512+ combinations
+        # (This uses the function we defined earlier)
+        calculated_df = calculate_scenario_logic(temp_df, ctx['val'])
+        
+        # B. Define what columns constitute a "Unique Visual Scenario"
+        # We only care if these specific columns are unique.
+        # If two rows have different backend prices (e.g., Locker 29 vs 39) 
+        # but both show "FREE", they are duplicates to the user.
+        display_cols = [
+            'Shop_Display', 
+            'Locker_Display', 'Locker_Exp_Display',
+            'Home_Display', 'Home_Exp_Display'
+        ]
+        
+        # C. Remove "Visual Duplicates"
+        # This keeps the first occurrence of a visual scenario and drops the rest
+        unique_visuals = calculated_df.drop_duplicates(subset=display_cols)
+        
+        # D. Sample from the UNIQUE list
+        # If we have enough unique rows, sample n. If not, take all of them.
+        if len(unique_visuals) >= ctx['n']:
+            sampled_df = unique_visuals.sample(n=ctx['n'], random_state=seed)
+        else:
+            st.warning(f"Note: Only {len(unique_visuals)} unique scenarios exist for {ctx['label']}. Returning all of them.")
+            sampled_df = unique_visuals
+            
+        final_dfs.append(sampled_df)
 
-    # 4. Calculate Logic
-    final_small = calculate_scenario_logic(df_small, small_basket_val)
-    final_big = calculate_scenario_logic(df_big, big_basket_val)
-    
-    # Combine
-    final_design = pd.concat([final_small, final_big]).reset_index(drop=True)
+    # Combine both baskets into one final design
+    final_design = pd.concat(final_dfs).reset_index(drop=True)
     final_design.index.name = "Scenario_ID"
-    final_design.index += 1 # Start ID at 1
-
+    final_design.index += 1 # Start ID at 1 for readability
+    
     # --- 4. DISPLAY ---
 
     st.subheader(f"Generated Design ({len(final_design)} Scenarios)")
