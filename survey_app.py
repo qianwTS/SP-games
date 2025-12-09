@@ -126,25 +126,54 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # --- CARDS LAYOUT ---
     
+    # --- CARDS LAYOUT (UPDATED FOR SPLIT CHOICES) ---
+    
+    # Helper to create split buttons
+    def render_split_choice(label_base, display_text, col_key, context_label, scenario_id):
+        """
+        Parses "Pay 59 or Add 149" and renders two buttons.
+        If no "Add", renders one button.
+        """
+        # 1. Check if this is a "Top-Up" scenario
+        if " or Add " in display_text:
+            # Split the string: "Pay 59" | "Add 149"
+            pay_text, add_text = display_text.split(" or ")
+            
+            # Button A: Pay Shipping
+            if st.button(f"💰 {pay_text}", key=f"btn_pay_{col_key}"):
+                # We record "Home_Standard_PAID"
+                submit_answer(f"{label_base}_PAID", scenario_id, context_label)
+                st.rerun()
+            
+            # Button B: Top Up
+            # We style this one to look enticing (using type="primary" if available, or emoji)
+            if st.button(f"➕ {add_text} (Free Ship)", key=f"btn_add_{col_key}"):
+                # We record "Home_Standard_TOPUP"
+                submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
+                st.rerun()
+                
+        else:
+            # 2. Standard Scenario (Just Pay or Just Free)
+            if st.button(f"Select ({display_text})", key=f"btn_std_{col_key}"):
+                submit_answer(f"{label_base}_FLAT", scenario_id, context_label)
+                st.rerun()
+
     # 1. HOME DELIVERY
     st.subheader("🏠 Home Delivery")
     c1, c2 = st.columns(2)
     
     with c1:
         st.info("**Standard Home** (2-4 Days)")
-        st.markdown(f"#### {home_disp}")
-        if st.button("Choose Standard Home", key=f"btn_home_{q_idx}"):
-            submit_answer("Home_Standard", row['Scenario_ID'], row['Context_Label'])
-            st.rerun()
+        # Clean the text first (optional shock filter)
+        clean_disp = clean_display_text(row['Home_Display'], row['Context_Cart_Value'])
+        # Render the buttons
+        render_split_choice("Home_Standard", clean_disp, f"h_std_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
     with c2:
-        st.warning("**Express Home** (next day)")
-        st.markdown(f"#### {row['Home_Exp_Display']}")
-        if st.button("Choose Express Home", key=f"btn_home_exp_{q_idx}"):
-            submit_answer("Home_Express", row['Scenario_ID'], row['Context_Label'])
-            st.rerun()
+        st.warning("**Express Home** (1-2 Days)")
+        # Express is usually just "Pay X", so this will likely render 1 button
+        render_split_choice("Home_Express", row['Home_Exp_Display'], f"h_exp_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
     st.markdown("---")
 
@@ -154,24 +183,15 @@ else:
     
     with c3:
         st.success("**Parcel Locker** (2-4 Days)")
-        st.markdown(f"#### {row['Locker_Display']}")
-        if st.button("Choose Locker", key=f"btn_lock_{q_idx}"):
-            submit_answer("Locker_Standard", row['Scenario_ID'], row['Context_Label'])
-            st.rerun()
+        # Lockers might have top-ups too (e.g., Pay 29 or Add 59)
+        render_split_choice("Locker_Standard", row['Locker_Display'], f"l_std_{q_idx}", row['Context_Label'], row['Scenario_ID'])
 
     with c4:
-        st.warning("**Express Locker** (next day)")
-        st.markdown(f"#### {row['Locker_Exp_Display']}")
-        if st.button("Choose Express Locker", key=f"btn_lock_exp_{q_idx}"):
-            submit_answer("Locker_Express", row['Scenario_ID'], row['Context_Label'])
-            st.rerun()
+        st.warning("**Express Locker** (1-2 Days)")
+        render_split_choice("Locker_Express", row['Locker_Exp_Display'], f"l_exp_{q_idx}", row['Context_Label'], row['Scenario_ID'])
             
     with c5:
-        # FIXED: st.secondary does not exist. Using st.info instead.
-        st.info("**Store Collect** (2-4 Days)") 
-        st.markdown(f"#### {row['Shop_Display']}")
-        if st.button("Choose Store", key=f"btn_shop_{q_idx}"):
-            submit_answer("Shop_Collect", row['Scenario_ID'], row['Context_Label'])
-            st.rerun()
+        st.info("**Store Collect** (ASAP)")
+        render_split_choice("Shop_Collect", row['Shop_Display'], f"s_col_{q_idx}", row['Context_Label'], row['Scenario_ID'])
             
   
