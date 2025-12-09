@@ -155,7 +155,7 @@ else:
                 
         else:
             # 2. Standard Scenario (Just Pay or Just Free)
-            if st.button(f"Select ({display_text})", key=f"btn_std_{col_key}"):
+            if st.button(f"💰 ({display_text})", key=f"btn_std_{col_key}"):
                 submit_answer(f"{label_base}_FLAT", scenario_id, context_label)
                 st.rerun()
 
