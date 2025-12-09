@@ -112,7 +112,7 @@ if full_design.empty:
 else:
     # 2. Define Contexts (The Baskets)
     small_basket_val = 240 # SEK
-    big_basket_val = 850   # SEK
+    big_basket_val = 750   # SEK
 
     # 3. Sample Balanced Sets
     # We use random sampling with a seed to simulate an orthogonal selection 
