@@ -144,7 +144,7 @@ else:
                     val_only = add_text.replace("Add ", "")
                     
                     # Top-Up Button (Primary Action)
-                    if st.button(f"➕ {val_only} (to 🛒 for Free Ship)", key=f"btn_add_{col_key}", type="primary", use_container_width=True):
+                    if st.button(f"➕ {val_only} to 🛒 for Free Ship", key=f"btn_add_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
                         st.rerun()
                     
