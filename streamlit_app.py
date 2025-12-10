@@ -22,7 +22,7 @@ with st.sidebar:
     locker_exp_prices = st.multiselect("Locker Express Prices", [49, 59], default=[49, 59])
     
     st.subheader("Nest B: Home Delivery")
-    home_prices = st.multiselect("Home Prices", [59, 79], default=[59, 79])
+    home_prices = st.multiselect("Home Prices", [69, 79], default=[69, 79])
     home_thresh = st.multiselect("Home Free Thresholds", [799, 899], default=[799, 899])
     home_exp_prices = st.multiselect("Home Express Prices", [99, 129], default=[99, 129])
     
