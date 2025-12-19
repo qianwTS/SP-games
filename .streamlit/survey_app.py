@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials # <--- NEW
 from datetime import datetime
 
 # --- 1. CONFIGURATION & STATE ---
@@ -18,27 +18,35 @@ if 'survey_started' not in st.session_state:
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
-# --- 2. GOOGLE SHEETS CONNECTION ---
+# --- 2. GOOGLE SHEETS CONNECTION (MODERN FIX) ---
 def save_to_google_sheets(data):
     """
     Connects to Google Sheets and appends the user's responses.
     """
     try:
         # Define the Scope
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
         
-        # Authenticate using the secrets.toml file
-        # We construct the credentials dictionary from Streamlit secrets
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        # Load secrets
+        s_dict = st.secrets["gcp_service_account"]
+        
+        # FIX: Handle the private key newline characters if they are escaped
+        # (This is the #1 cause of database errors on Streamlit Cloud)
+        creds_dict = dict(s_dict)
+        creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
+
+        # Authenticate using modern google-auth
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
         # Open the Sheet
-        # REPLACE 'Survey_Responses' WITH THE EXACT NAME OF YOUR GOOGLE SHEET
+        # MAKE SURE YOUR GOOGLE SHEET IS NAMED EXACTLY "Survey_Responses"
         sheet = client.open("Survey_Responses").sheet1 
         
-        # Prepare Data for Upload
-        # We turn the list of dictionaries into a list of rows
+        # Prepare Data
         rows_to_append = []
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -51,13 +59,15 @@ def save_to_google_sheets(data):
             ]
             rows_to_append.append(row)
             
-        # Append to Sheet
+        # Append
         sheet.append_rows(rows_to_append)
         return True
         
     except Exception as e:
-        st.error(f"Database Error: {e}")
+        # Print the full error to the screen so we can debug if it fails again
+        st.error(f"Detailed Database Error: {str(e)}")
         return False
+        
 
 # --- 3. HELPER FUNCTIONS ---
 def submit_answer(choice_label, scenario_id, context_label):
