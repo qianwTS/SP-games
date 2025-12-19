@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials # <--- NEW
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # --- 1. CONFIGURATION & STATE ---
@@ -18,65 +18,49 @@ if 'survey_started' not in st.session_state:
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
-# --- 2. GOOGLE SHEETS CONNECTION (FIXED DATA TYPES) ---
+# --- 2. GOOGLE SHEETS CONNECTION ---
 def save_to_google_sheets(data):
-    """
-    Connects to Google Sheets and appends the user's responses.
-    """
     try:
-        # Define the Scope
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         
-        # Load secrets
         s_dict = st.secrets["gcp_service_account"]
         creds_dict = dict(s_dict)
-        # Handle newlines in private key
         creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
 
-        # Authenticate
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
-        # Open the Sheet
         sheet = client.open("Survey_Responses").sheet1 
         
-        # Prepare Data
         rows_to_append = []
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         for item in data:
-            # FIX: Explicitly convert Scenario_ID to Python int
-            # and Context/Choice to string to avoid serialization errors
             row = [
                 str(timestamp),
-                int(item['Scenario_ID']),  # <--- THIS WAS THE CULPRIT
+                int(item['Scenario_ID']),
                 str(item['Context']),
                 str(item['Choice'])
             ]
             rows_to_append.append(row)
             
-        # Append
         sheet.append_rows(rows_to_append)
         return True
         
     except Exception as e:
         st.error(f"Detailed Database Error: {str(e)}")
         return False
-        
 
 # --- 3. HELPER FUNCTIONS ---
 def submit_answer(choice_label, scenario_id, context_label):
-    # FIX: Convert numpy int64 to native python int immediately
-    # using .item() is the safest way to convert a numpy scalar to a native type
     clean_id = int(scenario_id) 
-    
     st.session_state.answers.append({
         "Scenario_ID": clean_id,
-        "Context": str(context_label), # Ensure string
-        "Choice": str(choice_label)    # Ensure string
+        "Context": str(context_label),
+        "Choice": str(choice_label)
     })
     st.session_state.current_q += 1
 
@@ -116,7 +100,6 @@ if st.session_state.design_df is None:
         except Exception as e:
             st.error(f"Error: {e}")
     
-    # Demo Data Logic
     if st.checkbox("Or use Demo Data"):
         data = {
             'Scenario_ID': [1, 2],
@@ -164,8 +147,6 @@ q_idx = st.session_state.current_q
 
 # C. SURVEY COMPLETE
 if q_idx >= len(df):
-    
-    # Attempt to save data ONCE
     if not st.session_state.data_saved:
         with st.spinner("Saving your responses..."):
             success = save_to_google_sheets(st.session_state.answers)
@@ -178,7 +159,6 @@ if q_idx >= len(df):
 
     st.write("Thank you for your participation.")
     
-    # Fallback Download Button
     results_df = pd.DataFrame(st.session_state.answers)
     csv = results_df.to_csv(index=False).encode('utf-8')
     st.download_button("Download My Responses (Backup)", csv, "results.csv", "text/csv")
@@ -245,7 +225,8 @@ else:
                         submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
                         st.rerun()
                     
-                    if st.button(f"Pay {pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
+                    # FIXED: Removed 'Pay ' string because pay_text already has it
+                    if st.button(f"{pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", scenario_id, context_label)
                         st.rerun()
 
@@ -254,7 +235,8 @@ else:
                         btn_label = f"✅ FREE Shipping"
                         style_type = "secondary"
                     else:
-                        btn_label = f"Pay {display_text}"
+                        # FIXED: Removed 'Pay ' string because display_text already has it
+                        btn_label = f"{display_text}"
                         style_type = "secondary"
                     
                     if st.button(btn_label, key=f"btn_std_{col_key}", type=style_type, use_container_width=True):
