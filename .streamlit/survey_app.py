@@ -3,10 +3,14 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import uuid
 
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(page_title="Checkout Survey", layout="centered")
 
+# Initialize Session State
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())[:8]
 if 'current_q' not in st.session_state:
     st.session_state.current_q = 0
 if 'answers' not in st.session_state:
@@ -19,7 +23,7 @@ if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
 # --- 2. GOOGLE SHEETS CONNECTION ---
-def save_to_google_sheets(data):
+def save_to_google_sheets(answers, demographics):
     try:
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -38,20 +42,29 @@ def save_to_google_sheets(data):
         rows_to_append = []
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        for item in data:
-            # PARANOID CONVERSION LOGIC
-            ts = str(timestamp)
-            
-            raw_id = item['Scenario_ID']
-            if hasattr(raw_id, 'item'): 
-                s_id = raw_id.item()
-            else:
-                s_id = int(raw_id)
-            
-            ctx = str(item['Context'])
-            chc = str(item['Choice'])
-            
-            row = [ts, s_id, ctx, chc]
+        for item in answers:
+            row = [
+                str(timestamp),
+                str(st.session_state.session_id),
+                
+                # Demographics (From the end of survey)
+                str(demographics.get('Gender', '')),
+                str(demographics.get('Age', '')),
+                str(demographics.get('Occupation', '')),
+                str(demographics.get('Education', '')),
+                str(demographics.get('Household_Size', '')),
+                str(demographics.get('Income', '')),
+                str(demographics.get('Urbanization', '')),
+                str(demographics.get('Car_Owner', '')),
+                str(demographics.get('Dist_to_Shop', '')),
+                str(demographics.get('Online_Freq', '')),
+                str(demographics.get('Categories', '')),
+                
+                # Experiment Data
+                int(item['Scenario_ID']),
+                str(item['Context']),
+                str(item['Choice'])
+            ]
             rows_to_append.append(row)
             
         sheet.append_rows(rows_to_append)
@@ -90,43 +103,34 @@ def clean_display_text(text, cart_value):
 
 # --- 4. APP LOGIC ---
 
-# A. AUTOMATIC FILE LOAD (NO UPLOADER)
+# A. AUTOMATIC FILE LOAD
 if st.session_state.design_df is None:
     try:
-        # AUTOMATICALLY READ THE FILE FROM GITHUB REPO
         df = pd.read_csv("shipping_topup_design.csv")
-        
-        # Check if file is valid
         if 'Context_Cart_Value' in df.columns:
             st.session_state.design_df = df
             st.rerun()
         else:
-            st.error("Error: CSV file found but columns are missing.")
+            st.error("Error: CSV columns missing.")
             st.stop()
-            
     except FileNotFoundError:
-        st.error("⚠️ Critical Error: Design file missing!")
-        st.info("Researcher: Please upload 'shipping_topup_design.csv' to your GitHub repository.")
+        st.error("⚠️ Design file missing! Upload 'shipping_topup_design.csv' to GitHub.")
         st.stop()
 
-# B. INTRO
+# B. INTRO (Simple Start Page)
 if not st.session_state.survey_started:
-    st.title("📦 Welcome to the Survey")
+    st.title("📦 Checkout Experiment")
     st.markdown("""
-    ### Imagine you are shopping online...
-    You have finished adding items to your cart and are now at the **Checkout Page**.
+    ### Welcome!
+    Imagine you are shopping online and have reached the **Checkout Page**.
     
-    In the following screens, you will see different **Shipping Options**.
-    Your goal is to choose the option that fits you best.
+    You will see **16 different shipping scenarios**. 
+    Please choose the option that fits you best for each one.
     
-    **Look out for:**
-    * **💰 Shipping Cost:** Some options are free, some cost money.
-    * **➕ Top-Up Offers:** Sometimes, buying a little more (e.g., adding socks) makes shipping **FREE**.
-    * **🌿 Sustainability:** Some options are Fossil Free.
-    
-    The survey will take about **2 minutes**.
+    The survey takes about **2-3 minutes**.
     """)
-    if st.button("Start Checkout Experiment", type="primary"):
+    
+    if st.button("Start Experiment", type="primary"):
         st.session_state.survey_started = True
         st.rerun()
     st.stop()
@@ -135,36 +139,72 @@ if not st.session_state.survey_started:
 df = st.session_state.design_df
 q_idx = st.session_state.current_q
 
-# C. SURVEY COMPLETE
+# C. SCENARIOS COMPLETE -> SHOW DEMOGRAPHICS FORM
 if q_idx >= len(df):
+    
+    st.success("✅ Scenarios Complete!")
+    st.markdown("### Final Step: About You")
+    st.markdown("Please answer these quick questions to finish the study.")
+    
+    # Only show form if data hasn't been saved yet
     if not st.session_state.data_saved:
-        with st.spinner("Saving your responses..."):
-            success = save_to_google_sheets(st.session_state.answers)
-            if success:
-                st.session_state.data_saved = True
-                st.success("✅ Responses Saved to Database!")
-                st.balloons()
-            else:
-                st.error("⚠️ Could not connect to database. Please download your CSV below.")
+        with st.form("demographics_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                gender = st.selectbox("Gender", ["Female", "Male", "Non-binary", "Prefer not to say"])
+                age = st.selectbox("Age Group", ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"])
+                edu = st.selectbox("Education", ["High School", "Bachelor's", "Master's", "PhD", "Other"])
+                occ = st.selectbox("Occupation", ["Student", "Employed", "Self-employed", "Unemployed", "Retired"])
+            with col2:
+                hh_size = st.number_input("Household Size", min_value=1, max_value=10, step=1)
+                income = st.selectbox("Monthly Household Income (SEK)", ["< 25,000", "25,000 - 45,000", "45,000 - 65,000", "> 65,000", "Prefer not to say"])
+                urban = st.selectbox("Living Area", ["Urban (City Center)", "Suburban", "Rural"])
+                car = st.radio("Do you own a car?", ["Yes", "No"], horizontal=True)
 
-    st.write("Thank you for your participation.")
-    
-    # Optional Backup Download
-    results_df = pd.DataFrame(st.session_state.answers)
-    csv = results_df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download My Responses (Backup)", csv, "results.csv", "text/csv")
-    
-    # Remove Restart button in production so they don't take it twice?
-    # Or keep it for testing.
-    if st.button("Start New Session"):
-        st.session_state.current_q = 0
-        st.session_state.answers = []
-        st.session_state.survey_started = False
-        st.session_state.data_saved = False
-        st.rerun()
+            st.markdown("**Shopping Habits**")
+            dist_shop = st.selectbox("Distance to nearest physical electronics store", ["< 1 km", "1-5 km", "5-10 km", "> 10 km"])
+            freq = st.selectbox("Frequency of Online Shopping", ["Weekly", "Monthly", "Once every few months", "Rarely"])
+            cats = st.multiselect("What do you usually buy online?", ["Electronics", "Clothing/Fashion", "Groceries", "Home & Decor", "Beauty/Health", "Books/Media"])
+
+            st.markdown("---")
+            submitted = st.form_submit_button("Submit & Finish", type="primary")
+            
+            if submitted:
+                # Capture Data
+                demographics = {
+                    "Gender": gender, "Age": age, "Education": edu,
+                    "Occupation": occ, "Household_Size": hh_size, "Income": income,
+                    "Urbanization": urban, "Car_Owner": car, "Dist_to_Shop": dist_shop,
+                    "Online_Freq": freq, "Categories": ", ".join(cats)
+                }
+                
+                # SAVE TO GOOGLE SHEETS
+                with st.spinner("Saving your responses..."):
+                    success = save_to_google_sheets(st.session_state.answers, demographics)
+                    if success:
+                        st.session_state.data_saved = True
+                        st.rerun() # Rerun to show the success screen below
+                    else:
+                        st.error("⚠️ Connection Error. Please download the backup CSV.")
+
+    # D. SUCCESS SCREEN (After Save)
+    if st.session_state.data_saved:
+        st.balloons()
+        st.success("🎉 Thank you! Your responses have been saved.")
+        st.write("You can close this tab now.")
+        
+        # Optional Backup Download (Hidden by default, unhide if needed)
+        # results_df = pd.DataFrame(st.session_state.answers)
+        # csv = results_df.to_csv(index=False).encode('utf-8')
+        # st.download_button("Download Backup", csv, "results.csv", "text/csv")
+        
+        if st.button("Start New Session"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
 
 else:
-    # D. SURVEY QUESTIONS
+    # E. EXPERIMENT SCENARIOS (The 16 Questions)
     col_back, col_prog = st.columns([1, 4])
     with col_back:
         if q_idx > 0:
@@ -218,7 +258,8 @@ else:
                         submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
                         st.rerun()
                     
-                    if st.button(f"Pay {pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
+                    # FIXED: Removed 'Pay ' string
+                    if st.button(f"{pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", scenario_id, context_label)
                         st.rerun()
 
@@ -227,6 +268,7 @@ else:
                         btn_label = f"✅ FREE Shipping"
                         style_type = "secondary"
                     else:
+                        # FIXED: Removed 'Pay ' string
                         btn_label = f"{display_text}"
                         style_type = "secondary"
                     
