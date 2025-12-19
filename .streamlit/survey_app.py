@@ -56,7 +56,12 @@ def save_to_google_sheets(answers, demographics):
                 str(demographics.get('Income', '')),
                 str(demographics.get('Urbanization', '')),
                 str(demographics.get('Car_Owner', '')),
-                str(demographics.get('Dist_to_Shop', '')),
+                # New Distance Columns
+                str(demographics.get('Dist_Locker', '')),
+                str(demographics.get('Dist_Pickup', '')),
+                str(demographics.get('Dist_Shop', '')),
+                
+                # Habits
                 str(demographics.get('Online_Freq', '')),
                 str(demographics.get('Categories', '')),
                 
@@ -157,14 +162,39 @@ if q_idx >= len(df):
                 occ = st.selectbox("Occupation", ["Student", "Employed", "Self-employed", "Unemployed", "Retired"])
             with col2:
                 hh_size = st.number_input("Household Size", min_value=1, max_value=10, step=1)
-                income = st.selectbox("Monthly Household Income (SEK)", ["< 25,000", "25,000 - 45,000", "45,000 - 65,000", "> 65,000", "Prefer not to say"])
-                urban = st.selectbox("Living Area", ["Urban (City Center)", "Suburban", "Rural"])
+                income = st.selectbox("Monthly Household Income before tax (SEK)", ["< 25,000", "25,000 - 45,000", "45,000 - 65,000", "> 65,000", "Prefer not to say"])
+                urban = st.selectbox("Living Area", ["Urban (inside cordon)", "Suburban", "Rural"])
                 car = st.radio("Do you own a car?", ["Yes", "No"], horizontal=True)
 
+            st.markdown("---")
+            st.markdown("**Your Location Context**")
+            # UPDATED: Granular Distance Questions
+            dist_locker = st.selectbox("Distance to nearest Parcel Locker", ["< 500 m", "500 m - 1 km", "1 - 3 km", "> 3 km"])
+            dist_pickup = st.selectbox("Distance to nearest Service Point (Ombud)", ["< 500 m", "500 m - 1 km", "1 - 3 km", "> 3 km"])
+            dist_shop = st.selectbox("Distance to nearest Shopping Center", ["< 1 km", "1 - 5 km", "5 - 10 km", "> 10 km"])
+
+            st.markdown("---")
             st.markdown("**Shopping Habits**")
-            dist_shop = st.selectbox("Distance to nearest physical electronics store", ["< 1 km", "1-5 km", "5-10 km", "> 10 km"])
-            freq = st.selectbox("Frequency of Online Shopping", ["Weekly", "Monthly", "Once every few months", "Rarely"])
-            cats = st.multiselect("What do you usually buy online?", ["Electronics", "Clothing/Fashion", "Groceries", "Home & Decor", "Beauty/Health", "Books/Media"])
+            # UPDATED: Frequency Options
+            freq = st.selectbox("Frequency of Online Shopping", [
+                "Daily or almost daily", 
+                "Several times a week", 
+                "Once a week", 
+                "2-3 times a month", 
+                "Once a month", 
+                "Less than once a month"
+            ])
+            # UPDATED: Categories
+            cats = st.multiselect("What do you usually buy online?", [
+                "Clothing/Fashion", 
+                "Electronics", 
+                "Barnprodukter & leksaker", 
+                "Groceries", 
+                "Home & Decor", 
+                "Beauty/Health", 
+                "Books/Media", 
+                "Other"
+            ])
 
             st.markdown("---")
             submitted = st.form_submit_button("Submit & Finish", type="primary")
