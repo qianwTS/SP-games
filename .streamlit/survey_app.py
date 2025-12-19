@@ -205,6 +205,7 @@ if q_idx >= len(df):
                     "Gender": gender, "Age": age, "Education": edu,
                     "Occupation": occ, "Household_Size": hh_size, "Income": income,
                     "Urbanization": urban, "Car_Owner": car, "Dist_to_Shop": dist_shop,
+                    "Dist_Locker": dist_locker, "Dist_Pickup": dist_pickup, "Dist_Shop": dist_shop,
                     "Online_Freq": freq, "Categories": ", ".join(cats)
                 }
                 
