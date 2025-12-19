@@ -18,40 +18,64 @@ if 'survey_started' not in st.session_state:
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
-# --- 2. GOOGLE SHEETS CONNECTION ---
+
+# --- 2. GOOGLE SHEETS CONNECTION (PARANOID VERSION) ---
 def save_to_google_sheets(data):
+    """
+    Connects to Google Sheets and appends the user's responses.
+    """
     try:
+        # Define the Scope
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         
+        # Load secrets
         s_dict = st.secrets["gcp_service_account"]
         creds_dict = dict(s_dict)
         creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
 
+        # Authenticate
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
+        # Open the Sheet
         sheet = client.open("Survey_Responses").sheet1 
         
+        # Prepare Data
         rows_to_append = []
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         for item in data:
-            row = [
-                str(timestamp),
-                int(item['Scenario_ID']),
-                str(item['Context']),
-                str(item['Choice'])
-            ]
+            # PARANOID CONVERSION LOGIC
+            # 1. timestamp: Force string
+            ts = str(timestamp)
+            
+            # 2. Scenario_ID: Check for numpy types explicitly
+            raw_id = item['Scenario_ID']
+            if hasattr(raw_id, 'item'): 
+                # .item() converts numpy types (int64) to native Python types (int)
+                s_id = raw_id.item()
+            else:
+                s_id = int(raw_id)
+            
+            # 3. Context/Choice: Force string
+            ctx = str(item['Context'])
+            chc = str(item['Choice'])
+            
+            # Create the clean row
+            row = [ts, s_id, ctx, chc]
             rows_to_append.append(row)
             
+        # Append
         sheet.append_rows(rows_to_append)
         return True
         
     except Exception as e:
         st.error(f"Detailed Database Error: {str(e)}")
+        # OPTIONAL: Print the bad data to screen to help debug
+        st.write("Debug Data:", data) 
         return False
 
 # --- 3. HELPER FUNCTIONS ---
