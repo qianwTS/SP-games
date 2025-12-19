@@ -1,0 +1,17 @@
+Scenario_ID,Locker_Price,Locker_Threshold,Locker_Exp_Price,Locker_Is_Green,Locker_Distance,Home_Price,Home_Threshold,Home_Exp_Price,Home_Is_Green,Shop_Price,Shop_Threshold,Shop_Distance,Context_Cart_Value,Context_Label,Locker_Final_Cost,Locker_TopUp_Gap,Locker_Display,Home_Final_Cost,Home_TopUp_Gap,Home_Display,Shop_Final_Cost,Shop_TopUp_Gap,Shop_Display,Locker_Exp_Display,Home_Exp_Display
+1,29,299,49,False,1-2 km,79,899,129,True,19,149,2-4 km,240,Small Basket (240kr),29,59,Pay 29 or Add 59,79,659,Pay 79 or Add 659,0,0,FREE,Pay 49,Pay 129
+2,29,199,59,False,<1 km,79,899,129,True,19,149,2-4 km,240,Small Basket (240kr),0,0,FREE,79,659,Pay 79 or Add 659,0,0,FREE,Pay 59,Pay 129
+3,39,299,49,True,<1 km,69,899,99,False,19,249,4-6 km,240,Small Basket (240kr),39,59,Pay 39 or Add 59,69,659,Pay 69 or Add 659,19,9,Pay 19 or Add 9,Pay 49,Pay 99
+4,29,299,49,True,1-2 km,79,899,129,True,19,249,2-4 km,240,Small Basket (240kr),29,59,Pay 29 or Add 59,79,659,Pay 79 or Add 659,19,9,Pay 19 or Add 9,Pay 49,Pay 129
+5,39,299,59,True,<1 km,79,799,129,True,29,249,2-4 km,240,Small Basket (240kr),39,59,Pay 39 or Add 59,79,559,Pay 79 or Add 559,29,9,Pay 29 or Add 9,Pay 59,Pay 129
+6,39,299,59,False,<1 km,69,799,99,False,29,249,4-6 km,240,Small Basket (240kr),39,59,Pay 39 or Add 59,69,559,Pay 69 or Add 559,29,9,Pay 29 or Add 9,Pay 59,Pay 99
+7,29,299,59,True,<1 km,79,899,99,False,29,249,2-4 km,240,Small Basket (240kr),29,59,Pay 29 or Add 59,79,659,Pay 79 or Add 659,29,9,Pay 29 or Add 9,Pay 59,Pay 99
+8,29,299,59,True,<1 km,79,799,129,True,19,149,4-6 km,240,Small Basket (240kr),29,59,Pay 29 or Add 59,79,559,Pay 79 or Add 559,0,0,FREE,Pay 59,Pay 129
+9,29,199,59,False,1-2 km,69,799,129,True,19,149,2-4 km,750,Big Basket (750kr),0,0,FREE,69,49,Pay 69 or Add 49,0,0,FREE,Pay 59,Pay 129
+10,29,199,49,True,<1 km,69,799,129,False,19,149,2-4 km,750,Big Basket (750kr),0,0,FREE,69,49,Pay 69 or Add 49,0,0,FREE,Pay 49,Pay 129
+11,29,199,49,False,<1 km,69,899,129,False,19,149,4-6 km,750,Big Basket (750kr),0,0,FREE,69,149,Pay 69 or Add 149,0,0,FREE,Pay 49,Pay 129
+12,29,199,59,False,<1 km,69,899,129,False,19,149,2-4 km,750,Big Basket (750kr),0,0,FREE,69,149,Pay 69 or Add 149,0,0,FREE,Pay 59,Pay 129
+13,29,199,49,False,1-2 km,79,799,129,True,19,149,4-6 km,750,Big Basket (750kr),0,0,FREE,79,49,Pay 79 or Add 49,0,0,FREE,Pay 49,Pay 129
+14,29,199,59,True,1-2 km,79,899,99,True,19,149,4-6 km,750,Big Basket (750kr),0,0,FREE,79,149,Pay 79 or Add 149,0,0,FREE,Pay 59,Pay 99
+15,29,199,59,False,1-2 km,79,799,99,False,19,149,2-4 km,750,Big Basket (750kr),0,0,FREE,79,49,Pay 79 or Add 49,0,0,FREE,Pay 59,Pay 99
+16,29,199,59,True,1-2 km,69,799,129,False,19,149,4-6 km,750,Big Basket (750kr),0,0,FREE,69,49,Pay 69 or Add 49,0,0,FREE,Pay 59,Pay 129
