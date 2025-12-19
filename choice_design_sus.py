@@ -41,6 +41,13 @@ with st.sidebar:
     n_big = st.number_input("Scenarios for Big Basket", value=8, min_value=1)
     seed = st.number_input("Random Seed (for reproducibility)", value=42)
 
+    # --- NEW SECTION ON DISTANCE TRADE-OFF ---   
+    st.subheader("📍 Distance Attributes")
+    # Define realistic distances. 
+    # "Closest" usually implies <500m. "Far" implies driving might be needed.
+    locker_dist_opts = st.multiselect("Locker Distances", ["<1 km", "1-2 km", "2-3 km"], default=["<1 km", "1-2 km"])
+    shop_dist_opts = st.multiselect("Shop Distances", ["2-4 km", "4-6 km", ">6 km"], default=["2-4 km", "4-6 km"])
+
 # --- 2. GENERATION LOGIC ---
 
 def generate_full_factorial():
@@ -48,18 +55,18 @@ def generate_full_factorial():
     # Create the Cartesian product of all selected levels
     combinations = list(itertools.product(
         locker_prices, locker_thresh,
-        locker_exp_prices, locker_green_opts, # Added Green
+        locker_exp_prices, locker_green_opts, locker_dist_opts, # Added Green and distance
         home_prices, home_thresh,
         home_exp_prices, home_green_opts,     # Added Green
-        shop_prices, shop_thresh
+        shop_prices, shop_thresh, shop_dist_opts # Added Distance
     ))
     
     cols = [
         "Locker_Price", "Locker_Threshold",
-        "Locker_Exp_Price", "Locker_Is_Green", # Column Name
+        "Locker_Exp_Price", "Locker_Is_Green", "Locker_Distance", # Column Name
         "Home_Price", "Home_Threshold",
         "Home_Exp_Price", "Home_Is_Green",     # Column Name
-        "Shop_Price", "Shop_Threshold"
+        "Shop_Price", "Shop_Threshold", "Shop_Distance"
     ]
     
     return pd.DataFrame(combinations, columns=cols)
@@ -144,8 +151,8 @@ else:
         # This ensures that "Home 79 (Green)" and "Home 79 (Not Green)" 
         # are seen as DIFFERENT scenarios and not duplicates.
         display_cols = [
-            'Shop_Display', 
-            'Locker_Display', 'Locker_Exp_Display', 'Locker_Is_Green',
+            'Shop_Display', 'Shop_Distance',
+            'Locker_Display', 'Locker_Exp_Display', 'Locker_Is_Green','Locker_Distance',
             'Home_Display', 'Home_Exp_Display', 'Home_Is_Green'
         ]
         
