@@ -69,10 +69,14 @@ def save_to_google_sheets(data):
 
 # --- 3. HELPER FUNCTIONS ---
 def submit_answer(choice_label, scenario_id, context_label):
+    # FIX: Convert numpy int64 to native python int immediately
+    # using .item() is the safest way to convert a numpy scalar to a native type
+    clean_id = int(scenario_id) 
+    
     st.session_state.answers.append({
-        "Scenario_ID": scenario_id,
-        "Context": context_label,
-        "Choice": choice_label
+        "Scenario_ID": clean_id,
+        "Context": str(context_label), # Ensure string
+        "Choice": str(choice_label)    # Ensure string
     })
     st.session_state.current_q += 1
 
