@@ -18,64 +18,47 @@ if 'survey_started' not in st.session_state:
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
-
-# --- 2. GOOGLE SHEETS CONNECTION (PARANOID VERSION) ---
+# --- 2. GOOGLE SHEETS CONNECTION ---
 def save_to_google_sheets(data):
-    """
-    Connects to Google Sheets and appends the user's responses.
-    """
     try:
-        # Define the Scope
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         
-        # Load secrets
         s_dict = st.secrets["gcp_service_account"]
         creds_dict = dict(s_dict)
         creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
 
-        # Authenticate
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
-        # Open the Sheet
         sheet = client.open("Survey_Responses").sheet1 
         
-        # Prepare Data
         rows_to_append = []
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         for item in data:
             # PARANOID CONVERSION LOGIC
-            # 1. timestamp: Force string
             ts = str(timestamp)
             
-            # 2. Scenario_ID: Check for numpy types explicitly
             raw_id = item['Scenario_ID']
             if hasattr(raw_id, 'item'): 
-                # .item() converts numpy types (int64) to native Python types (int)
                 s_id = raw_id.item()
             else:
                 s_id = int(raw_id)
             
-            # 3. Context/Choice: Force string
             ctx = str(item['Context'])
             chc = str(item['Choice'])
             
-            # Create the clean row
             row = [ts, s_id, ctx, chc]
             rows_to_append.append(row)
             
-        # Append
         sheet.append_rows(rows_to_append)
         return True
         
     except Exception as e:
-        st.error(f"Detailed Database Error: {str(e)}")
-        # OPTIONAL: Print the bad data to screen to help debug
-        st.write("Debug Data:", data) 
+        st.error(f"Database Error: {str(e)}")
         return False
 
 # --- 3. HELPER FUNCTIONS ---
@@ -107,41 +90,24 @@ def clean_display_text(text, cart_value):
 
 # --- 4. APP LOGIC ---
 
-# A. SETUP
+# A. AUTOMATIC FILE LOAD (NO UPLOADER)
 if st.session_state.design_df is None:
-    st.title("🛍️ Setup Experiment")
-    st.info("Please upload the 'shipping_topup_design.csv' file.")
-    uploaded_file = st.file_uploader("Upload Design CSV", type=['csv'])
-    
-    if uploaded_file is not None:
-        try:
-            df = pd.read_csv(uploaded_file)
-            if 'Context_Cart_Value' in df.columns:
-                st.session_state.design_df = df
-                st.rerun()
-            else:
-                st.error("CSV format incorrect.")
-        except Exception as e:
-            st.error(f"Error: {e}")
-    
-    if st.checkbox("Or use Demo Data"):
-        data = {
-            'Scenario_ID': [1, 2],
-            'Context_Cart_Value': [240, 750],
-            'Context_Label': ['Small Basket', 'Big Basket'],
-            'Home_Display': ['Pay 59 or Add 559', 'Pay 59 or Add 149'],
-            'Home_Exp_Display': ['Pay 129', 'Pay 129'],
-            'Locker_Display': ['FREE', 'FREE'],
-            'Locker_Exp_Display': ['Pay 49', 'Pay 49'],
-            'Shop_Display': ['Pay 19 or Add 9', 'FREE'],
-            'Home_Is_Green': [True, False],
-            'Locker_Is_Green': [False, True],
-            'Locker_Distance': ['<1 km', '1-2 km'],
-            'Shop_Distance': ['2-4 km', '4-6 km']
-        }
-        st.session_state.design_df = pd.DataFrame(data)
-        st.rerun()
-    st.stop()
+    try:
+        # AUTOMATICALLY READ THE FILE FROM GITHUB REPO
+        df = pd.read_csv("shipping_topup_design.csv")
+        
+        # Check if file is valid
+        if 'Context_Cart_Value' in df.columns:
+            st.session_state.design_df = df
+            st.rerun()
+        else:
+            st.error("Error: CSV file found but columns are missing.")
+            st.stop()
+            
+    except FileNotFoundError:
+        st.error("⚠️ Critical Error: Design file missing!")
+        st.info("Researcher: Please upload 'shipping_topup_design.csv' to your GitHub repository.")
+        st.stop()
 
 # B. INTRO
 if not st.session_state.survey_started:
@@ -183,11 +149,14 @@ if q_idx >= len(df):
 
     st.write("Thank you for your participation.")
     
+    # Optional Backup Download
     results_df = pd.DataFrame(st.session_state.answers)
     csv = results_df.to_csv(index=False).encode('utf-8')
     st.download_button("Download My Responses (Backup)", csv, "results.csv", "text/csv")
     
-    if st.button("Restart"):
+    # Remove Restart button in production so they don't take it twice?
+    # Or keep it for testing.
+    if st.button("Start New Session"):
         st.session_state.current_q = 0
         st.session_state.answers = []
         st.session_state.survey_started = False
@@ -249,8 +218,7 @@ else:
                         submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
                         st.rerun()
                     
-                    # FIXED: Removed 'Pay ' string because pay_text already has it
-                    if st.button(f"{pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
+                    if st.button(f"Pay {pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", scenario_id, context_label)
                         st.rerun()
 
@@ -259,7 +227,6 @@ else:
                         btn_label = f"✅ FREE Shipping"
                         style_type = "secondary"
                     else:
-                        # FIXED: Removed 'Pay ' string because display_text already has it
                         btn_label = f"{display_text}"
                         style_type = "secondary"
                     
