@@ -18,7 +18,7 @@ if 'survey_started' not in st.session_state:
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
 
-# --- 2. GOOGLE SHEETS CONNECTION (MODERN FIX) ---
+# --- 2. GOOGLE SHEETS CONNECTION (FIXED DATA TYPES) ---
 def save_to_google_sheets(data):
     """
     Connects to Google Sheets and appends the user's responses.
@@ -32,18 +32,15 @@ def save_to_google_sheets(data):
         
         # Load secrets
         s_dict = st.secrets["gcp_service_account"]
-        
-        # FIX: Handle the private key newline characters if they are escaped
-        # (This is the #1 cause of database errors on Streamlit Cloud)
         creds_dict = dict(s_dict)
+        # Handle newlines in private key
         creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
 
-        # Authenticate using modern google-auth
+        # Authenticate
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
         
         # Open the Sheet
-        # MAKE SURE YOUR GOOGLE SHEET IS NAMED EXACTLY "Survey_Responses"
         sheet = client.open("Survey_Responses").sheet1 
         
         # Prepare Data
@@ -51,11 +48,13 @@ def save_to_google_sheets(data):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         for item in data:
+            # FIX: Explicitly convert Scenario_ID to Python int
+            # and Context/Choice to string to avoid serialization errors
             row = [
-                timestamp,
-                item['Scenario_ID'],
-                item['Context'],
-                item['Choice']
+                str(timestamp),
+                int(item['Scenario_ID']),  # <--- THIS WAS THE CULPRIT
+                str(item['Context']),
+                str(item['Choice'])
             ]
             rows_to_append.append(row)
             
@@ -64,7 +63,6 @@ def save_to_google_sheets(data):
         return True
         
     except Exception as e:
-        # Print the full error to the screen so we can debug if it fails again
         st.error(f"Detailed Database Error: {str(e)}")
         return False
         
