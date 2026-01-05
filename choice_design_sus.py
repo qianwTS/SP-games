@@ -35,6 +35,7 @@ with st.sidebar:
     st.caption("Randomly assign 'Fossil Free' badges to test Willingness to Pay.")
     home_green_opts = st.multiselect("Home is Fossil Free?", [True, False], default=[True, False])
     locker_green_opts = st.multiselect("Locker is Fossil Free?", [True, False], default=[True, False])
+    shop_green_opts = st.multiselect("Store is Fossil Free?", [True, False], default=[True, False])
 
     st.header("2. Experiment Settings")
     n_small = st.number_input("Scenarios for Small Basket", value=8, min_value=1)
@@ -58,7 +59,7 @@ def generate_full_factorial():
         locker_exp_prices, locker_green_opts, locker_dist_opts, # Added Green and distance
         home_prices, home_thresh,
         home_exp_prices, home_green_opts,     # Added Green
-        shop_prices, shop_thresh, shop_dist_opts # Added Distance
+        shop_prices, shop_thresh, shop_green_opts, shop_dist_opts # Added Distance
     ))
     
     cols = [
@@ -66,7 +67,7 @@ def generate_full_factorial():
         "Locker_Exp_Price", "Locker_Is_Green", "Locker_Distance", # Column Name
         "Home_Price", "Home_Threshold",
         "Home_Exp_Price", "Home_Is_Green",     # Column Name
-        "Shop_Price", "Shop_Threshold", "Shop_Distance"
+        "Shop_Price", "Shop_Threshold", "Shop_Is_Green","Shop_Distance"
     ]
     
     return pd.DataFrame(combinations, columns=cols)
@@ -151,7 +152,7 @@ else:
         # This ensures that "Home 79 (Green)" and "Home 79 (Not Green)" 
         # are seen as DIFFERENT scenarios and not duplicates.
         display_cols = [
-            'Shop_Display', 'Shop_Distance',
+            'Shop_Display','Shop_Is_Green', 'Shop_Distance',
             'Locker_Display', 'Locker_Exp_Display', 'Locker_Is_Green','Locker_Distance',
             'Home_Display', 'Home_Exp_Display', 'Home_Is_Green'
         ]
