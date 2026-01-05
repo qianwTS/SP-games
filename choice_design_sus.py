@@ -198,7 +198,7 @@ else:
     st.download_button(
         label="Download Design as CSV",
         data=final_design.to_csv().encode('utf-8'),
-        file_name='shipping_topup_design.csv',
+        file_name='shipping_topup_design_2.csv',
         mime='text/csv',
     )
     
