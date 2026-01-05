@@ -243,6 +243,9 @@ else:
     # 🌿 SUSTAINABILITY FLAGS
     home_is_green = row['Home_Is_Green'] if 'Home_Is_Green' in row else False
     locker_is_green = row['Locker_Is_Green'] if 'Locker_Is_Green' in row else False
+    
+    # NEW: Check if Shop_Is_Green exists in CSV (safeguard)
+    shop_is_green = row['Shop_Is_Green'] if 'Shop_Is_Green' in row else False
 
     st.markdown(f"""
     <div style="background-color:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:20px; border: 1px solid #ddd;">
@@ -313,6 +316,6 @@ else:
     # 4. Express Locker (Never Green + Has Distance)
     render_option_row("Express Locker", "Next Day", row['Locker_Exp_Display'], f"l_exp_{q_idx}", "Locker_Express", row['Context_Label'], row['Scenario_ID'], is_express=True, distance=locker_dist)
     
-    # 5. Store Collect (Has Distance)
+    # 5. Store Collect (Has Distance + NOW HAS GREEN LOGIC)
     shop_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
-    render_option_row("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], distance=shop_dist)
+    render_option_row("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], distance=shop_dist, is_green=shop_is_green)
