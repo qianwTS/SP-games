@@ -112,7 +112,7 @@ def clean_display_text(text, cart_value):
 # A. AUTOMATIC FILE LOAD
 if st.session_state.design_df is None:
     try:
-        df = pd.read_csv("shipping_topup_design.csv")
+        df = pd.read_csv("shipping_topup_design_2.csv")
         if 'Context_Cart_Value' in df.columns:
             st.session_state.design_df = df
             st.rerun()
@@ -120,7 +120,7 @@ if st.session_state.design_df is None:
             st.error("Error: CSV columns missing.")
             st.stop()
     except FileNotFoundError:
-        st.error("⚠️ Design file missing! Upload 'shipping_topup_design.csv' to GitHub.")
+        st.error("⚠️ Design file missing! Upload 'shipping_topup_design_2.csv' to GitHub.")
         st.stop()
 
 # B. INTRO
