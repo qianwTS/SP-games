@@ -6,64 +6,87 @@ from datetime import datetime
 import uuid
 
 # --- 1. CONFIGURATION & STATE ---
-st.set_page_config(page_title="Checkout Survey", layout="centered")
+st.set_page_config(page_title="Checkout Survey", layout="centered", initial_sidebar_state="collapsed")
 
 # --- CSS FOR COMPACT & CLEAR MOBILE UI ---
 st.markdown("""
     <style>
-        /* 1. Reset Padding for Mobile */
+        /* 1. Global Spacing Fixes */
         .block-container {
             padding-top: 1rem !important;
-            padding-bottom: 3rem !important;
+            padding-bottom: 2rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
         
-        /* 2. The Cart Banner (High Visibility) */
-        .cart-banner {
-            background-color: #f0f2f6;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 15px;
-            border: 1px solid #dcdcdc;
-        }
-        .cart-text { font-size: 1.1rem; font-weight: 700; color: #333; margin: 0; }
-        .cart-sub { font-size: 0.85rem; color: #666; margin: 0; }
-
-        /* 3. The Option Card */
-        .option-card {
-            border: 1px solid #eee;
-            border-radius: 8px;
+        /* 2. STICKY CART HEADER */
+        /* This keeps the cart value pinned to the top */
+        .sticky-header {
+            position: fixed;
+            top: 40px; /* Adjust based on Streamlit header height */
+            left: 0;
+            right: 0;
+            background-color: #ffffff;
             padding: 10px;
-            margin-bottom: 8px;
-            background: white;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            z-index: 9999;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border-bottom: 2px solid #4CAF50;
+            text-align: center;
+            max-width: 700px; /* Match centered layout */
+            margin: 0 auto; 
+        }
+        .cart-total { font-size: 1.2rem; font-weight: 800; color: #111; margin: 0; }
+        .cart-count { font-size: 0.8rem; color: #666; margin: 0; }
+        
+        /* Spacer to prevent content from hiding behind sticky header */
+        .header-spacer { height: 80px; }
+
+        /* 3. OPTION ROW STYLING */
+        .option-row {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 8px 0;
+            margin-bottom: 0px;
         }
         
-        /* 4. Text Styles */
-        .opt-title { font-size: 1rem; font-weight: 700; color: #222; margin-bottom: 2px; }
-        .opt-time  { font-size: 0.9rem; color: #444; font-weight: 500; }
-        .opt-dist  { font-size: 0.85rem; color: #666; display: block; margin-top: 2px; }
+        /* 4. TYPOGRAPHY */
+        .opt-title { font-size: 0.95rem; font-weight: 700; color: #000; line-height: 1.2; }
+        .opt-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;}
         
-        /* 5. The Green Badge (High Contrast) */
+        /* 5. BADGES */
         .badge-green {
-            display: inline-block;
             background-color: #e8f5e9;
             color: #1b5e20;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-top: 4px;
+            padding: 1px 6px;
+            border-radius: 4px;
             border: 1px solid #c8e6c9;
         }
+        .badge-dist {
+            background-color: #f5f5f5;
+            color: #444;
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
 
-        /* 6. Buttons */
+        /* 6. BUTTON COLOR OVERRIDE */
+        /* Forces the "Primary" button to be Green/Teal instead of Red */
+        button[kind="primary"] {
+            background-color: #2e7d32 !important; /* Green */
+            border-color: #2e7d32 !important;
+            color: white !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #1b5e20 !important;
+            border-color: #1b5e20 !important;
+        }
+        /* Make buttons slightly smaller vertically */
         div.stButton > button {
-            width: 100%;
-            border-radius: 6px;
-            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            line-height: 1.2;
+            min-height: 0px;
+            height: auto;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -128,6 +151,7 @@ def clean_display_text(text, cart_value):
         try:
             parts = text.split("Add ")
             gap = int(parts[1])
+            # Only show "Add" option if the gap is reasonable
             if gap > (cart_value * 1.5): return text.split(" or")[0]
         except: pass
     return text
@@ -222,23 +246,25 @@ else:
     locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
     shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
-    # 1. VISIBLE CART BANNER
+    # 1. VISIBLE STICKY CART BANNER
     st.markdown(f"""
-    <div class="cart-banner">
-        <p class="cart-text">🛒 Cart Total: {cart_val} SEK</p>
-        <p class="cart-sub">Scenario {q_idx + 1} of {len(df)}</p>
+    <div class="sticky-header">
+        <p class="cart-total">Cart Total: {cart_val} SEK</p>
+        <p class="cart-count">Scenario {q_idx + 1}/{len(df)}</p>
     </div>
+    <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
 
     # 2. CLEAR COMPACT RENDERER
     def render_compact(title, time, display_text, col_key, label_base, context, s_id, green=False, express=False, dist=None):
         
-        # Build HTML Content
+        # Build Metadata HTML
         icon = "⚡" if express else ""
-        green_html = '<br><span class="badge-green">🌿 Fossil Free</span>' if green else ""
-        dist_html = f'<span class="opt-dist">📍 {dist}</span>' if dist else ""
+        meta_html = f"<span>⏱️ {time}</span>"
+        if dist: meta_html += f" <span class='badge-dist'>📍 {dist}</span>"
+        if green: meta_html += f" <span class='badge-green'>🌿 Fossil Free</span>"
         
-        # Prepare Buttons
+        # Parse Buttons
         pay_btn = None
         topup_btn = None
         
@@ -246,42 +272,39 @@ else:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
             pay_btn = pay_txt 
-            topup_btn = f"➕ Add {val} (Free Ship)"
+            topup_btn = f"+ Add {val} (Free)" # Simplified Text
         else:
             pay_btn = f"✅ FREE" if "FREE" in display_text.upper() else f"{display_text}"
 
         with st.container():
-            # 60% Width for Info, 40% Width for Buttons
-            c1, c2 = st.columns([1.5, 1]) 
+            st.markdown('<div class="option-row">', unsafe_allow_html=True)
+            # Use columns for layout: Left is Text, Right is Button(s)
+            c1, c2 = st.columns([1.6, 1]) 
             
             with c1:
                 st.markdown(f"""
-                <div class="option-card" style="height:100%; border:none; box-shadow:none;">
                     <div class="opt-title">{icon} {title}</div>
-                    <div class="opt-time">⏱️ {time}</div>
-                    {dist_html}
-                    {green_html}
-                </div>
+                    <div class="opt-meta">{meta_html}</div>
                 """, unsafe_allow_html=True)
             
             with c2:
-                # Vertical Buttons
                 if topup_btn:
+                    # TOPUP button (Type=Primary -> CSS turns it Green)
                     if st.button(topup_btn, key=f"add_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_TOPUP", s_id, context)
                         st.rerun()
-                    if st.button(pay_btn, key=f"pay_{col_key}", use_container_width=True):
+                    # Pay button (Type=Secondary -> Grey/White)
+                    if st.button(pay_btn, key=f"pay_{col_key}", type="secondary", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", s_id, context)
                         st.rerun()
                 else:
-                    # Single Button (Centered vertically if possible, or just placed)
-                    st.write("") 
-                    btn_type = "secondary" if "FREE" in str(pay_btn) else "secondary"
+                    # Single Button
+                    btn_type = "secondary" # Always grey/white unless it's a special action
                     if st.button(pay_btn, key=f"std_{col_key}", type=btn_type, use_container_width=True):
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
             
-            st.markdown("<hr style='margin:0.5rem 0; border-top: 1px solid #eee;'>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # RENDER ALL OPTIONS
     render_compact("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], green=home_green)
