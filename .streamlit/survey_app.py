@@ -8,64 +8,65 @@ import uuid
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(page_title="Checkout Survey", layout="centered", initial_sidebar_state="collapsed")
 
-# --- CSS FOR ULTRA-COMPACT MOBILE UI ---
+# --- CSS FOR COMPACT MOBILE UI ---
 st.markdown("""
     <style>
-        /* 1. FORCE LIGHT MODE */
+        /* 1. FORCE LIGHT MODE & RESET */
         .stApp {
             background-color: #ffffff !important; 
             color: #000000 !important;
         }
         
-        /* 2. REMOVE ALL DEFAULT PADDING */
+        /* 2. CONTAINER PADDING */
         .block-container {
-            padding-top: 1rem !important; /* Added a little top padding back */
-            padding-bottom: 2rem !important;
+            padding-top: 0.5rem !important;
+            padding-bottom: 3rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
         
-        /* 3. COMPACT STICKY HEADER (FIXED VISIBILITY) */
+        /* 3. STICKY HEADER */
         .sticky-header {
-            position: -webkit-sticky;
-            position: sticky;
-            /* CRITICAL FIX: Push the sticky point down so it sits BELOW the Streamlit header */
-            top: 3.5rem; 
-            z-index: 999;
+            position: fixed;
+            top: 50px; /* Adjust based on your phone's status bar/browser header */
+            left: 0; 
+            right: 0;
+            z-index: 9999;
             background-color: #ffffff;
-            padding: 8px 0;
+            padding: 10px 15px;
             border-bottom: 2px solid #4CAF50;
-            text-align: center;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Added shadow for separation */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 700px;
+            margin: 0 auto;
         }
-        .cart-total { font-size: 1.1rem; font-weight: 800; color: #000; margin: 0; line-height: 1.1; }
-        .cart-count { font-size: 0.75rem; color: #666; margin: 0; line-height: 1.1; }
+        .header-text { 
+            font-size: 1.1rem; 
+            font-weight: 800; 
+            color: #000; 
+            margin: 0; 
+        }
+        .header-sub { 
+            font-size: 0.85rem; 
+            color: #555; 
+            font-weight: 500;
+        }
         
-        /* 4. COMPACT OPTION ROW */
+        /* Spacer to push content down so it doesn't hide behind the fixed header */
+        .header-spacer { height: 70px; }
+
+        /* 4. OPTION ROW */
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
-            padding: 6px 0;
+            padding: 8px 0;
         }
         
-        /* 5. TIGHT TYPOGRAPHY */
-        .opt-title { 
-            font-size: 0.9rem; 
-            font-weight: 700; 
-            color: #000 !important; 
-            line-height: 1.1; 
-            margin-bottom: 2px;
-        }
-        .opt-meta  { 
-            font-size: 0.75rem; 
-            color: #444 !important; 
-            display: flex; 
-            flex-wrap: wrap; 
-            gap: 4px; 
-            align-items: center; 
-            line-height: 1.1;
-        }
+        /* 5. TYPOGRAPHY */
+        .opt-title { font-size: 0.95rem; font-weight: 700; color: #000 !important; line-height: 1.1; margin-bottom: 4px; }
+        .opt-meta  { font-size: 0.75rem; color: #444 !important; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
         
         /* 6. BADGES */
         .badge-green {
@@ -73,7 +74,7 @@ st.markdown("""
             color: #1b5e20 !important;
             font-size: 0.65rem;
             font-weight: 700;
-            padding: 1px 5px;
+            padding: 1px 6px;
             border-radius: 4px;
             border: 1px solid #c8e6c9;
         }
@@ -81,27 +82,34 @@ st.markdown("""
             background-color: #f1f3f4;
             color: #333 !important;
             font-size: 0.65rem;
-            padding: 1px 5px;
+            padding: 1px 6px;
             border-radius: 4px;
         }
 
-        /* 7. ALL GREEN BUTTONS & TEXT WRAPPING */
+        /* 7. BUTTON STYLING */
         button[kind="primary"] {
-            background-color: #2e7d32 !important; /* Green */
+            background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
             color: white !important;
-            padding: 0.3rem 0.5rem !important;
-            font-size: 0.75rem !important;
-            
+            padding: 0.4rem 0.5rem !important;
+            font-size: 0.8rem !important;
             white-space: normal !important; 
             height: auto !important;
             min-height: 2.5rem !important;
             line-height: 1.2 !important;
         }
         
-        div.stButton { margin-bottom: 0px !important; }
-        div.stButton > button { margin-top: 0px !important; }
-        div[data-testid="column"] > div { gap: 0rem !important; }
+        /* Styling for the Back/Reset buttons */
+        button[kind="secondary"] {
+            padding: 0.2rem 0.5rem !important;
+            font-size: 0.75rem !important;
+            height: auto !important;
+            min-height: 0px !important;
+        }
+        
+        /* Hide Streamlit Header Elements to save space */
+        header {visibility: hidden;} 
+        .sticky-header { top: 0px !important; } /* If header is hidden, sticky goes to top 0 */
     </style>
 """, unsafe_allow_html=True)
 
@@ -159,6 +167,20 @@ def submit_answer(choice_label, scenario_id, context_label):
         "Choice": str(choice_label)
     })
     st.session_state.current_q += 1
+
+def go_back():
+    """Removes the last answer and decrements the question index"""
+    if st.session_state.current_q > 0:
+        st.session_state.current_q -= 1
+        # Remove the last recorded answer
+        if st.session_state.answers:
+            st.session_state.answers.pop()
+    st.rerun()
+
+def reset_survey():
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.rerun()
 
 def clean_display_text(text, cart_value):
     if "Add" in str(text):
@@ -245,8 +267,7 @@ if q_idx >= len(df):
         st.balloons()
         st.success("🎉 Done! Thank you.")
         if st.button("New Session"):
-            for key in list(st.session_state.keys()): del st.session_state[key]
-            st.rerun()
+            reset_survey()
 
 else:
     # E. SCENARIO RENDERER
@@ -259,15 +280,27 @@ else:
     locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
     shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
-    # 1. VISIBLE STICKY CART BANNER (Adjusted top)
+    # 1. FIXED HEADER
     st.markdown(f"""
     <div class="sticky-header">
-        <p class="cart-total">Cart Total: {cart_val} SEK</p>
-        <p class="cart-count">Scenario {q_idx + 1}/{len(df)}</p>
+        <span class="header-text">🛒 Cart: {cart_val} SEK</span>
+        <span class="header-sub">Step {q_idx + 1}/{len(df)}</span>
     </div>
+    <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
+    
+    # 2. NAVIGATION ROW (Back / Restart)
+    # Using small secondary buttons to not distract from the main task
+    nav_col1, nav_col2 = st.columns([1, 4])
+    with nav_col1:
+        if q_idx > 0:
+            st.button("⬅️ Back", on_click=go_back, key="nav_back", use_container_width=True, type="secondary")
+    with nav_col2:
+        # Pushing the restart button to the far right or keeping it minimal
+        if st.button("Start Over", key="nav_reset", type="secondary"):
+            reset_survey()
 
-    # 2. CLEAR COMPACT RENDERER
+    # 3. OPTIONS RENDERER
     def render_compact(title, time, display_text, col_key, label_base, context, s_id, green=False, express=False, dist=None):
         
         # Build Metadata HTML
@@ -276,18 +309,21 @@ else:
         if dist: meta_html += f" <span class='badge-dist'>📍 {dist}</span>"
         if green: meta_html += f" <span class='badge-green'>🌿 Fossil Free</span>"
         
-        # Parse Buttons
-        pay_btn = None
-        topup_btn = None
-        
-        # HELPER TO FORMAT PRICE
+        # Helper to format price cleanly
         def format_pay_text(txt):
-            clean_txt = str(txt).replace("SEK", "").strip()
-            if "FREE" in clean_txt.upper() or clean_txt == "0":
+            # 1. Remove "SEK" and "Pay" (case insensitive) to get raw number
+            clean_txt = str(txt).lower().replace("sek", "").replace("pay", "").strip()
+            
+            # 2. Check for free
+            if "free" in clean_txt or clean_txt == "0":
                 return "✅ FREE"
             else:
                 return f"Pay for delivery fee {clean_txt} SEK"
 
+        # Parse Buttons
+        pay_btn = None
+        topup_btn = None
+        
         if " or Add " in display_text:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
