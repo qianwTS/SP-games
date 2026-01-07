@@ -19,23 +19,25 @@ st.markdown("""
         
         /* 2. REMOVE ALL DEFAULT PADDING */
         .block-container {
-            padding-top: 0rem !important;
+            padding-top: 1rem !important; /* Added a little top padding back */
             padding-bottom: 2rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
         
-        /* 3. COMPACT STICKY HEADER */
+        /* 3. COMPACT STICKY HEADER (FIXED VISIBILITY) */
         .sticky-header {
             position: -webkit-sticky;
             position: sticky;
-            top: 0;
-            z-index: 1000;
+            /* CRITICAL FIX: Push the sticky point down so it sits BELOW the Streamlit header */
+            top: 3.5rem; 
+            z-index: 999;
             background-color: #ffffff;
             padding: 8px 0;
             border-bottom: 2px solid #4CAF50;
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Added shadow for separation */
         }
         .cart-total { font-size: 1.1rem; font-weight: 800; color: #000; margin: 0; line-height: 1.1; }
         .cart-count { font-size: 0.75rem; color: #666; margin: 0; line-height: 1.1; }
@@ -44,7 +46,7 @@ st.markdown("""
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
-            padding: 6px 0; /* Slightly more padding for the taller buttons */
+            padding: 6px 0;
         }
         
         /* 5. TIGHT TYPOGRAPHY */
@@ -84,22 +86,19 @@ st.markdown("""
         }
 
         /* 7. ALL GREEN BUTTONS & TEXT WRAPPING */
-        /* Forces all primary buttons to be green */
         button[kind="primary"] {
             background-color: #2e7d32 !important; /* Green */
             border-color: #2e7d32 !important;
             color: white !important;
             padding: 0.3rem 0.5rem !important;
-            font-size: 0.75rem !important; /* Smaller font to fit text */
+            font-size: 0.75rem !important;
             
-            /* CRITICAL: Allow text to wrap for long labels */
             white-space: normal !important; 
             height: auto !important;
             min-height: 2.5rem !important;
             line-height: 1.2 !important;
         }
         
-        /* Remove default margins */
         div.stButton { margin-bottom: 0px !important; }
         div.stButton > button { margin-top: 0px !important; }
         div[data-testid="column"] > div { gap: 0rem !important; }
@@ -260,7 +259,7 @@ else:
     locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
     shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
-    # 1. VISIBLE STICKY CART BANNER
+    # 1. VISIBLE STICKY CART BANNER (Adjusted top)
     st.markdown(f"""
     <div class="sticky-header">
         <p class="cart-total">Cart Total: {cart_val} SEK</p>
@@ -281,18 +280,25 @@ else:
         pay_btn = None
         topup_btn = None
         
+        # HELPER TO FORMAT PRICE
+        def format_pay_text(txt):
+            clean_txt = str(txt).replace("SEK", "").strip()
+            if "FREE" in clean_txt.upper() or clean_txt == "0":
+                return "✅ FREE"
+            else:
+                return f"Pay for delivery fee {clean_txt} SEK"
+
         if " or Add " in display_text:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
-            pay_btn = pay_txt 
-            # Updated Text as requested
+            
+            pay_btn = format_pay_text(pay_txt)
             topup_btn = f"Add {val} to cart for free shipping" 
         else:
-            pay_btn = f"✅ FREE" if "FREE" in display_text.upper() else f"{display_text}"
+            pay_btn = format_pay_text(display_text)
 
         with st.container():
             st.markdown('<div class="option-row">', unsafe_allow_html=True)
-            # Give the button column a bit more width for the long text
             c1, c2 = st.columns([1.4, 1.2], gap="small") 
             
             with c1:
@@ -302,7 +308,6 @@ else:
                 """, unsafe_allow_html=True)
             
             with c2:
-                # All buttons are now type="primary" -> All Green
                 if topup_btn:
                     if st.button(topup_btn, key=f"add_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_TOPUP", s_id, context)
