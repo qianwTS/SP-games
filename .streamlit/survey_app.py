@@ -17,52 +17,26 @@ st.markdown("""
             color: #000000 !important;
         }
         
-        /* 2. FIX INPUT BOX BACKGROUNDS (Crucial for visibility) */
-        /* This forces the actual box where you select items to be White */
+        /* 2. FIX INPUT BOX BACKGROUNDS */
         .stSelectbox div[data-baseweb="select"] > div,
         .stMultiSelect div[data-baseweb="select"] > div {
             background-color: #ffffff !important;
             color: #000000 !important;
             border-color: #d1d5db !important;
         }
-        
-        /* Forces the text inside the box to be Black */
         .stSelectbox div[data-baseweb="select"] span,
         .stMultiSelect div[data-baseweb="select"] span {
             color: #000000 !important;
         }
+        ul[data-baseweb="menu"] { background-color: #ffffff !important; }
+        ul[data-baseweb="menu"] li { background-color: #ffffff !important; color: #000000 !important; }
+        ul[data-baseweb="menu"] li:hover { background-color: #f0f2f6 !important; }
 
-        /* Fix for the Dropdown Menu Options (The list that pops up) */
-        ul[data-baseweb="menu"] {
-            background-color: #ffffff !important;
-        }
-        ul[data-baseweb="menu"] li {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        /* Highlight color in dropdown */
-        ul[data-baseweb="menu"] li:hover, ul[data-baseweb="menu"] li[aria-selected="true"] {
-            background-color: #f0f2f6 !important;
-        }
-
-        /* Fix for MultiSelect Tags (The items you've already selected) */
-        .stMultiSelect div[data-baseweb="tag"] {
-            background-color: #e0e0e0 !important; /* Light Grey tag */
-        }
-        .stMultiSelect div[data-baseweb="tag"] span {
-            color: #000000 !important; /* Black text in tag */
-        }
-
-        /* General Labels (Age, Gender, etc.) */
+        /* General Labels */
         .stSelectbox label, .stNumberInput label, .stRadio label, .stMultiSelect label, p {
             color: #000000 !important;
         }
-        
-        /* Number Input Fix */
-        input[type="number"] {
-            color: #000000 !important;
-            background-color: #ffffff !important;
-        }
+        input[type="number"] { color: #000000 !important; background-color: #ffffff !important; }
         
         /* 3. CONTAINER PADDING */
         .block-container {
@@ -72,7 +46,7 @@ st.markdown("""
             padding-right: 0.5rem !important;
         }
         
-        /* 4. STICKY HEADER (RED HIGHLIGHT) */
+        /* 4. STICKY HEADER */
         .sticky-header {
             position: fixed;
             top: 50px; 
@@ -89,19 +63,8 @@ st.markdown("""
             max-width: 700px;
             margin: 0 auto;
         }
-        .header-text { 
-            font-size: 1.25rem; 
-            font-weight: 900; 
-            color: #d32f2f !important; 
-            margin: 0; 
-        }
-        .header-sub { 
-            font-size: 0.85rem; 
-            color: #555; 
-            font-weight: 600;
-        }
-        
-        /* Spacer */
+        .header-text { font-size: 1.25rem; font-weight: 900; color: #d32f2f !important; margin: 0; }
+        .header-sub { font-size: 0.85rem; color: #555; font-weight: 600; }
         .header-spacer { height: 80px; }
 
         /* 5. OPTION ROW */
@@ -110,12 +73,10 @@ st.markdown("""
             border-bottom: 1px solid #eee;
             padding: 5px 0;
         }
-        
-        /* 6. TYPOGRAPHY */
         .opt-title { font-size: 0.95rem; font-weight: 700; color: #000 !important; line-height: 1.1; margin-bottom: 2px; }
         .opt-meta  { font-size: 0.75rem; color: #444 !important; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
         
-        /* 7. BADGES */
+        /* 6. BADGES */
         .badge-green {
             background-color: #e8f5e9;
             color: #1b5e20 !important;
@@ -133,7 +94,7 @@ st.markdown("""
             border-radius: 4px;
         }
 
-        /* 8. BUTTON STYLING */
+        /* 7. BUTTONS */
         button[kind="primary"] {
             background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
@@ -145,7 +106,6 @@ st.markdown("""
             min-height: 2.5rem !important;
             line-height: 1.2 !important;
         }
-        
         button[kind="secondary"] {
             background-color: #f0f2f6 !important;
             border: 1px solid #d1d5db !important;
@@ -156,10 +116,23 @@ st.markdown("""
             min-height: 0px !important;
             margin-top: 0px !important;
         }
-        button[kind="secondary"]:hover {
-            border-color: #adadad !important;
-            color: #000 !important;
+        
+        /* 8. CONTEXT PAGE STYLES */
+        .context-card {
+            background-color: #ffffff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 0px;
+            text-align: center;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-top: 10px;
+            margin-bottom: 20px;
         }
+        .context-text-area { padding: 20px; }
+        .context-title { font-size: 1.5rem; font-weight: 800; color: #111; margin-bottom: 5px; }
+        .context-price { font-size: 1.8rem; font-weight: 900; color: #d32f2f; margin: 10px 0; }
+        .context-desc { font-size: 1rem; color: #555; margin-bottom: 10px; }
         
         /* Hide Header */
         header {visibility: hidden;} 
@@ -180,6 +153,12 @@ if 'survey_started' not in st.session_state:
     st.session_state.survey_started = False
 if 'data_saved' not in st.session_state:
     st.session_state.data_saved = False
+
+# --- New State for Context Pages ---
+if 'intro_1_seen' not in st.session_state:
+    st.session_state.intro_1_seen = False
+if 'intro_2_seen' not in st.session_state:
+    st.session_state.intro_2_seen = False
 
 # --- 2. GOOGLE SHEETS CONNECTION ---
 def save_to_google_sheets(answers, demographics):
@@ -277,7 +256,56 @@ if not st.session_state.survey_started:
 df = st.session_state.design_df
 q_idx = st.session_state.current_q
 
-# C. DEMOGRAPHICS (At End)
+# === C. CONTEXT PAGES WITH IMAGES ===
+
+# Context Page 1: Pharmacy (Most common low-value category)
+if q_idx == 0 and not st.session_state.intro_1_seen:
+    
+    st.markdown('<div class="context-card">', unsafe_allow_html=True)
+    
+    # Image: Pharmacy/Health products (Unsplash)
+    st.image("https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=800&q=80", use_container_width=True)
+    
+    st.markdown("""
+        <div class="context-text-area">
+            <div class="context-title">Part 1: Pharmacy</div>
+            <div class="context-desc">Imagine you are refilling your medicine cabinet (vitamins, skincare, etc).</div>
+            <div class="context-price">Cart Total: 240 SEK</div>
+        </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Start Shopping", type="primary", use_container_width=True):
+        st.session_state.intro_1_seen = True
+        st.rerun()
+    st.stop()
+
+# Context Page 2: Electronics (Common high-value category)
+elif q_idx == 8 and not st.session_state.intro_2_seen:
+    
+    st.markdown('<div class="context-card">', unsafe_allow_html=True)
+    
+    # Image: Electronics/Headphones (Unsplash)
+    st.image("https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80", use_container_width=True)
+    
+    st.markdown("""
+        <div class="context-text-area">
+            <div class="context-title">Part 2: Electronics</div>
+            <div class="context-desc">New scenario! Imagine you are buying a new pair of headphones.</div>
+            <div class="context-price">Cart Total: 750 SEK</div>
+        </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Continue to Part 2", type="primary", use_container_width=True):
+        st.session_state.intro_2_seen = True
+        st.rerun()
+    st.stop()
+
+# === END CONTEXT PAGES ===
+
+
+# D. DEMOGRAPHICS (At End)
 if q_idx >= len(df):
     if not st.session_state.data_saved:
         st.success("✅ Scenarios Complete!")
@@ -303,15 +331,16 @@ if q_idx >= len(df):
             st.markdown("---")
             freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
             
-            # --- SWEDISH CATEGORIES RESTORED ---
+            # --- UPDATED SWEDISH CATEGORIES ---
             cats = st.multiselect("Most purchased categories?", [
-                "Dagligvaror", 
-                "Heminredning", 
-                "Hemelektronik", 
-                "Apotek", 
-                "Sport & Fritid", 
+                "Apotek & Hälsa", 
                 "Kläder & Skor", 
-                "Böcker & Media",
+                "Skönhet", 
+                "Böcker & Media", 
+                "Hemelektronik", 
+                "Dagligvaror",
+                "Sport & Fritid", 
+                "Heminredning", 
                 "Annat"
             ])
             
