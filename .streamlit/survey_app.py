@@ -11,32 +11,57 @@ st.set_page_config(page_title="Checkout Survey", layout="centered", initial_side
 # --- CSS FOR COMPACT MOBILE UI & VISIBILITY FIXES ---
 st.markdown("""
     <style>
-        /* 1. FORCE LIGHT MODE BACKGROUND */
+        /* 1. FORCE LIGHT MODE EVERYWHERE */
         .stApp {
             background-color: #ffffff !important; 
             color: #000000 !important;
         }
         
-        /* 2. CRITICAL FORM VISIBILITY FIXES (For Demographics Page) */
-        /* Forces all labels (Gender, Age, etc.) to be black */
-        .stSelectbox label, .stNumberInput label, .stRadio label, p {
+        /* 2. FIX INPUT BOX BACKGROUNDS (Crucial for visibility) */
+        /* This forces the actual box where you select items to be White */
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background-color: #ffffff !important;
             color: #000000 !important;
+            border-color: #d1d5db !important;
         }
         
-        /* Forces the selected text inside dropdowns to be black */
-        .stSelectbox div[data-baseweb="select"] div {
+        /* Forces the text inside the box to be Black */
+        .stSelectbox div[data-baseweb="select"] span,
+        .stMultiSelect div[data-baseweb="select"] span {
             color: #000000 !important;
         }
-        
-        /* Forces the dropdown pop-up menu text to be black */
-        ul[data-baseweb="menu"] li {
-            color: #000000 !important;
+
+        /* Fix for the Dropdown Menu Options (The list that pops up) */
+        ul[data-baseweb="menu"] {
             background-color: #ffffff !important;
         }
+        ul[data-baseweb="menu"] li {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        /* Highlight color in dropdown */
+        ul[data-baseweb="menu"] li:hover, ul[data-baseweb="menu"] li[aria-selected="true"] {
+            background-color: #f0f2f6 !important;
+        }
+
+        /* Fix for MultiSelect Tags (The items you've already selected) */
+        .stMultiSelect div[data-baseweb="tag"] {
+            background-color: #e0e0e0 !important; /* Light Grey tag */
+        }
+        .stMultiSelect div[data-baseweb="tag"] span {
+            color: #000000 !important; /* Black text in tag */
+        }
+
+        /* General Labels (Age, Gender, etc.) */
+        .stSelectbox label, .stNumberInput label, .stRadio label, .stMultiSelect label, p {
+            color: #000000 !important;
+        }
         
-        /* Forces number input text to be black */
+        /* Number Input Fix */
         input[type="number"] {
             color: #000000 !important;
+            background-color: #ffffff !important;
         }
         
         /* 3. CONTAINER PADDING */
@@ -198,7 +223,6 @@ def submit_answer(choice_label, scenario_id, context_label):
     st.session_state.current_q += 1
 
 def go_back():
-    """Removes the last answer and decrements the question index"""
     if st.session_state.current_q > 0:
         st.session_state.current_q -= 1
         if st.session_state.answers:
@@ -278,6 +302,8 @@ if q_idx >= len(df):
             
             st.markdown("---")
             freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
+            
+            # --- UPDATED ENGLISH CATEGORIES ---
             cats = st.multiselect("Most purchased categories?", [
                 "Groceries",
                 "Home & Living",
@@ -375,18 +401,6 @@ else:
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-
-    # RENDER ALL OPTIONS
-    render_compact("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], green=home_green)
-    render_compact("Express Home", "Next Day", row['Home_Exp_Display'], f"h_exp_{q_idx}", "Home_Express", row['Context_Label'], row['Scenario_ID'], express=True)
-    
-    l_dist = row['Locker_Distance'] if 'Locker_Distance' in row else None
-    render_compact("Parcel Locker", "2-4 Days", row['Locker_Display'], f"l_std_{q_idx}", "Locker_Standard", row['Context_Label'], row['Scenario_ID'], green=locker_green, dist=l_dist)
-    
-    render_compact("Express Locker", "Next Day", row['Locker_Exp_Display'], f"l_exp_{q_idx}", "Locker_Express", row['Context_Label'], row['Scenario_ID'], express=True, dist=l_dist)
-    
-    s_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
-    render_compact("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], green=shop_green, dist=s_dist)
 
     # 3. NAVIGATION ROW (At Bottom)
     st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
