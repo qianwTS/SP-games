@@ -140,7 +140,7 @@ def is_true(val):
 # A. LOAD FILE
 if st.session_state.design_df is None:
     try:
-        df = pd.read_csv("shipping_topup_design.csv")
+        df = pd.read_csv("shipping_topup_design_2.csv")
         if 'Context_Cart_Value' in df.columns:
             st.session_state.design_df = df
             st.rerun()
