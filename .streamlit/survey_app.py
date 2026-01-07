@@ -303,16 +303,16 @@ if q_idx >= len(df):
             st.markdown("---")
             freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
             
-            # --- UPDATED ENGLISH CATEGORIES ---
+            # --- SWEDISH CATEGORIES RESTORED ---
             cats = st.multiselect("Most purchased categories?", [
-                "Groceries",
-                "Home & Living",
-                "Electronics",
-                "Pharmacy & Health",
-                "Sports & Leisure",
-                "Clothing & Footwear",
-                "Books & Media",
-                "Other"
+                "Dagligvaror", 
+                "Heminredning", 
+                "Hemelektronik", 
+                "Apotek", 
+                "Sport & Fritid", 
+                "Kläder & Skor", 
+                "Böcker & Media",
+                "Annat"
             ])
             
             if st.form_submit_button("Submit & Finish", type="primary", use_container_width=True):
@@ -401,6 +401,18 @@ else:
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
+    # RENDER ALL OPTIONS
+    render_compact("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], green=home_green)
+    render_compact("Express Home", "Next Day", row['Home_Exp_Display'], f"h_exp_{q_idx}", "Home_Express", row['Context_Label'], row['Scenario_ID'], express=True)
+    
+    l_dist = row['Locker_Distance'] if 'Locker_Distance' in row else None
+    render_compact("Parcel Locker", "2-4 Days", row['Locker_Display'], f"l_std_{q_idx}", "Locker_Standard", row['Context_Label'], row['Scenario_ID'], green=locker_green, dist=l_dist)
+    
+    render_compact("Express Locker", "Next Day", row['Locker_Exp_Display'], f"l_exp_{q_idx}", "Locker_Express", row['Context_Label'], row['Scenario_ID'], express=True, dist=l_dist)
+    
+    s_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
+    render_compact("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], green=shop_green, dist=s_dist)
 
     # 3. NAVIGATION ROW (At Bottom)
     st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
