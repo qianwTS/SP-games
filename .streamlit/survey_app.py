@@ -32,7 +32,7 @@ st.markdown("""
             top: 0;
             z-index: 1000;
             background-color: #ffffff;
-            padding: 8px 0; /* Reduced padding */
+            padding: 8px 0;
             border-bottom: 2px solid #4CAF50;
             text-align: center;
             margin-bottom: 5px;
@@ -44,12 +44,12 @@ st.markdown("""
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
-            padding: 4px 0; /* Very tight padding */
+            padding: 6px 0; /* Slightly more padding for the taller buttons */
         }
         
         /* 5. TIGHT TYPOGRAPHY */
         .opt-title { 
-            font-size: 0.9rem; /* Slightly smaller */
+            font-size: 0.9rem; 
             font-weight: 700; 
             color: #000 !important; 
             line-height: 1.1; 
@@ -83,35 +83,26 @@ st.markdown("""
             border-radius: 4px;
         }
 
-        /* 7. BUTTON COMPACTING */
+        /* 7. ALL GREEN BUTTONS & TEXT WRAPPING */
+        /* Forces all primary buttons to be green */
         button[kind="primary"] {
-            background-color: #2e7d32 !important;
+            background-color: #2e7d32 !important; /* Green */
             border-color: #2e7d32 !important;
             color: white !important;
-            padding: 0.2rem 0.5rem !important; /* Smaller button padding */
-            font-size: 0.8rem !important;
-            min-height: 0px !important;
-        }
-        button[kind="secondary"] {
-            background-color: #f8f9fa !important;
-            border: 1px solid #dadce0 !important;
-            color: #333 !important;
-            padding: 0.2rem 0.5rem !important;
-            font-size: 0.8rem !important;
-            min-height: 0px !important;
-        }
-        /* Remove default Streamlit button margins */
-        div.stButton {
-            margin-bottom: 0px !important;
-        }
-        div.stButton > button {
-            margin-top: 0px !important;
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.75rem !important; /* Smaller font to fit text */
+            
+            /* CRITICAL: Allow text to wrap for long labels */
+            white-space: normal !important; 
+            height: auto !important;
+            min-height: 2.5rem !important;
+            line-height: 1.2 !important;
         }
         
-        /* Hide Streamlit element spacing */
-        div[data-testid="column"] > div {
-            gap: 0rem !important;
-        }
+        /* Remove default margins */
+        div.stButton { margin-bottom: 0px !important; }
+        div.stButton > button { margin-top: 0px !important; }
+        div[data-testid="column"] > div { gap: 0rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -269,7 +260,7 @@ else:
     locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
     shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
-    # 1. VISIBLE STICKY CART BANNER (COMPACT)
+    # 1. VISIBLE STICKY CART BANNER
     st.markdown(f"""
     <div class="sticky-header">
         <p class="cart-total">Cart Total: {cart_val} SEK</p>
@@ -294,13 +285,15 @@ else:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
             pay_btn = pay_txt 
-            topup_btn = f"+ Add {val}" 
+            # Updated Text as requested
+            topup_btn = f"Add {val} to cart for free shipping" 
         else:
             pay_btn = f"✅ FREE" if "FREE" in display_text.upper() else f"{display_text}"
 
         with st.container():
             st.markdown('<div class="option-row">', unsafe_allow_html=True)
-            c1, c2 = st.columns([1.6, 1], gap="small") # Added gap="small"
+            # Give the button column a bit more width for the long text
+            c1, c2 = st.columns([1.4, 1.2], gap="small") 
             
             with c1:
                 st.markdown(f"""
@@ -309,15 +302,16 @@ else:
                 """, unsafe_allow_html=True)
             
             with c2:
+                # All buttons are now type="primary" -> All Green
                 if topup_btn:
                     if st.button(topup_btn, key=f"add_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_TOPUP", s_id, context)
                         st.rerun()
-                    if st.button(pay_btn, key=f"pay_{col_key}", type="secondary", use_container_width=True):
+                    if st.button(pay_btn, key=f"pay_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", s_id, context)
                         st.rerun()
                 else:
-                    if st.button(pay_btn, key=f"std_{col_key}", type="secondary", use_container_width=True):
+                    if st.button(pay_btn, key=f"std_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
             
