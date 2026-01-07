@@ -8,85 +8,86 @@ import uuid
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(page_title="Checkout Survey", layout="centered", initial_sidebar_state="collapsed")
 
-# --- CSS FOR COMPACT & CLEAR MOBILE UI ---
+# --- CSS FOR COMPACT MOBILE UI (FIXED) ---
 st.markdown("""
     <style>
-        /* 1. Global Spacing Fixes */
+        /* 1. FORCE LIGHT MODE & RESET */
+        /* This fixes the "Black on Black" issue by forcing a white background */
+        .stApp {
+            background-color: #ffffff !important; 
+            color: #000000 !important;
+        }
+        
+        /* 2. MOBILE CONTAINER PADDING */
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 2rem !important;
+            padding-top: 0rem !important; /* Remove top padding so sticky header hits the top */
+            padding-bottom: 5rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
         
-        /* 2. STICKY CART HEADER */
-        /* This keeps the cart value pinned to the top */
+        /* 3. STICKY CART HEADER (The Fix) */
+        /* position: sticky works better than fixed on mobile */
         .sticky-header {
-            position: fixed;
-            top: 40px; /* Adjust based on Streamlit header height */
-            left: 0;
-            right: 0;
-            background-color: #ffffff;
-            padding: 10px;
-            z-index: 9999;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: -webkit-sticky; /* Safari */
+            position: sticky;
+            top: 0;
+            z-index: 1000; /* High z-index to stay on top */
+            background-color: #ffffff; /* Solid white background so text doesn't bleed */
+            padding: 15px 0 10px 0;
             border-bottom: 2px solid #4CAF50;
             text-align: center;
-            max-width: 700px; /* Match centered layout */
-            margin: 0 auto; 
+            margin-bottom: 10px;
         }
-        .cart-total { font-size: 1.2rem; font-weight: 800; color: #111; margin: 0; }
-        .cart-count { font-size: 0.8rem; color: #666; margin: 0; }
+        .cart-total { font-size: 1.3rem; font-weight: 800; color: #000; margin: 0; }
+        .cart-count { font-size: 0.85rem; color: #666; margin: 0; }
         
-        /* Spacer to prevent content from hiding behind sticky header */
-        .header-spacer { height: 80px; }
-
-        /* 3. OPTION ROW STYLING */
+        /* 4. OPTION ROW STYLING */
         .option-row {
-            border-bottom: 1px solid #f0f0f0;
-            padding: 8px 0;
-            margin-bottom: 0px;
+            background-color: #ffffff; /* Ensure card background is white */
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 0;
         }
         
-        /* 4. TYPOGRAPHY */
-        .opt-title { font-size: 0.95rem; font-weight: 700; color: #000; line-height: 1.2; }
-        .opt-meta  { font-size: 0.8rem; color: #555; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;}
+        /* 5. TYPOGRAPHY (Forced Colors) */
+        .opt-title { font-size: 1rem; font-weight: 700; color: #000000 !important; line-height: 1.2; }
+        .opt-meta  { font-size: 0.85rem; color: #444444 !important; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;}
         
-        /* 5. BADGES */
+        /* 6. BADGES */
         .badge-green {
             background-color: #e8f5e9;
-            color: #1b5e20;
+            color: #1b5e20 !important;
             font-size: 0.7rem;
             font-weight: 700;
-            padding: 1px 6px;
+            padding: 2px 6px;
             border-radius: 4px;
             border: 1px solid #c8e6c9;
         }
         .badge-dist {
-            background-color: #f5f5f5;
-            color: #444;
+            background-color: #f1f3f4;
+            color: #333 !important;
             font-size: 0.7rem;
-            padding: 1px 6px;
+            padding: 2px 6px;
             border-radius: 4px;
         }
 
-        /* 6. BUTTON COLOR OVERRIDE */
-        /* Forces the "Primary" button to be Green/Teal instead of Red */
+        /* 7. BUTTON COLOR OVERRIDE */
         button[kind="primary"] {
             background-color: #2e7d32 !important; /* Green */
             border-color: #2e7d32 !important;
             color: white !important;
+            font-weight: 600;
         }
-        button[kind="primary"]:hover {
-            background-color: #1b5e20 !important;
-            border-color: #1b5e20 !important;
+        button[kind="primary"]:focus {
+            box-shadow: none !important;
+            border-color: #2e7d32 !important;
         }
-        /* Make buttons slightly smaller vertically */
-        div.stButton > button {
-            padding: 0.25rem 0.5rem;
-            line-height: 1.2;
-            min-height: 0px;
-            height: auto;
+        
+        /* Adjust Secondary Buttons to be visible in Light Mode */
+        button[kind="secondary"] {
+            background-color: #f8f9fa !important;
+            border: 1px solid #dadce0 !important;
+            color: #333 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -151,7 +152,6 @@ def clean_display_text(text, cart_value):
         try:
             parts = text.split("Add ")
             gap = int(parts[1])
-            # Only show "Add" option if the gap is reasonable
             if gap > (cart_value * 1.5): return text.split(" or")[0]
         except: pass
     return text
@@ -246,13 +246,12 @@ else:
     locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
     shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
-    # 1. VISIBLE STICKY CART BANNER
+    # 1. VISIBLE STICKY CART BANNER (UPDATED)
     st.markdown(f"""
     <div class="sticky-header">
         <p class="cart-total">Cart Total: {cart_val} SEK</p>
         <p class="cart-count">Scenario {q_idx + 1}/{len(df)}</p>
     </div>
-    <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
 
     # 2. CLEAR COMPACT RENDERER
@@ -272,13 +271,12 @@ else:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
             pay_btn = pay_txt 
-            topup_btn = f"+ Add {val} (Free)" # Simplified Text
+            topup_btn = f"+ Add {val} (Free)" 
         else:
             pay_btn = f"✅ FREE" if "FREE" in display_text.upper() else f"{display_text}"
 
         with st.container():
             st.markdown('<div class="option-row">', unsafe_allow_html=True)
-            # Use columns for layout: Left is Text, Right is Button(s)
             c1, c2 = st.columns([1.6, 1]) 
             
             with c1:
@@ -289,18 +287,14 @@ else:
             
             with c2:
                 if topup_btn:
-                    # TOPUP button (Type=Primary -> CSS turns it Green)
                     if st.button(topup_btn, key=f"add_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_TOPUP", s_id, context)
                         st.rerun()
-                    # Pay button (Type=Secondary -> Grey/White)
                     if st.button(pay_btn, key=f"pay_{col_key}", type="secondary", use_container_width=True):
                         submit_answer(f"{label_base}_PAID", s_id, context)
                         st.rerun()
                 else:
-                    # Single Button
-                    btn_type = "secondary" # Always grey/white unless it's a special action
-                    if st.button(pay_btn, key=f"std_{col_key}", type=btn_type, use_container_width=True):
+                    if st.button(pay_btn, key=f"std_{col_key}", type="secondary", use_container_width=True):
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
             
