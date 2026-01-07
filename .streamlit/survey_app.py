@@ -20,7 +20,7 @@ st.markdown("""
         /* 2. CONTAINER PADDING */
         .block-container {
             padding-top: 0.5rem !important;
-            padding-bottom: 3rem !important;
+            padding-bottom: 2rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
@@ -28,7 +28,7 @@ st.markdown("""
         /* 3. STICKY HEADER */
         .sticky-header {
             position: fixed;
-            top: 50px; /* Adjust based on your phone's status bar/browser header */
+            top: 50px; /* Adjust if needed */
             left: 0; 
             right: 0;
             z-index: 9999;
@@ -54,18 +54,18 @@ st.markdown("""
             font-weight: 500;
         }
         
-        /* Spacer to push content down so it doesn't hide behind the fixed header */
+        /* Spacer */
         .header-spacer { height: 70px; }
 
         /* 4. OPTION ROW */
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
-            padding: 8px 0;
+            padding: 5px 0; /* Reduced padding further */
         }
         
         /* 5. TYPOGRAPHY */
-        .opt-title { font-size: 0.95rem; font-weight: 700; color: #000 !important; line-height: 1.1; margin-bottom: 4px; }
+        .opt-title { font-size: 0.95rem; font-weight: 700; color: #000 !important; line-height: 1.1; margin-bottom: 2px; }
         .opt-meta  { font-size: 0.75rem; color: #444 !important; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
         
         /* 6. BADGES */
@@ -87,6 +87,8 @@ st.markdown("""
         }
 
         /* 7. BUTTON STYLING */
+        
+        /* Primary (Green) Buttons */
         button[kind="primary"] {
             background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
@@ -99,17 +101,25 @@ st.markdown("""
             line-height: 1.2 !important;
         }
         
-        /* Styling for the Back/Reset buttons */
+        /* Secondary (Back/Reset) Buttons - FORCED VISIBILITY */
         button[kind="secondary"] {
-            padding: 0.2rem 0.5rem !important;
-            font-size: 0.75rem !important;
+            background-color: #f0f2f6 !important; /* Light Grey Background */
+            border: 1px solid #d1d5db !important; /* Visible Border */
+            color: #31333F !important; /* Dark Grey Text */
+            padding: 0.3rem 0.5rem !important;
+            font-size: 0.8rem !important;
             height: auto !important;
             min-height: 0px !important;
+            margin-top: 0px !important;
         }
-        
+        button[kind="secondary"]:hover {
+            border-color: #adadad !important;
+            color: #000 !important;
+        }
+
         /* Hide Streamlit Header Elements to save space */
         header {visibility: hidden;} 
-        .sticky-header { top: 0px !important; } /* If header is hidden, sticky goes to top 0 */
+        .sticky-header { top: 0px !important; } 
     </style>
 """, unsafe_allow_html=True)
 
@@ -172,7 +182,6 @@ def go_back():
     """Removes the last answer and decrements the question index"""
     if st.session_state.current_q > 0:
         st.session_state.current_q -= 1
-        # Remove the last recorded answer
         if st.session_state.answers:
             st.session_state.answers.pop()
     st.rerun()
@@ -289,18 +298,7 @@ else:
     <div class="header-spacer"></div>
     """, unsafe_allow_html=True)
     
-    # 2. NAVIGATION ROW (Back / Restart)
-    # Using small secondary buttons to not distract from the main task
-    nav_col1, nav_col2 = st.columns([1, 4])
-    with nav_col1:
-        if q_idx > 0:
-            st.button("⬅️ Back", on_click=go_back, key="nav_back", use_container_width=True, type="secondary")
-    with nav_col2:
-        # Pushing the restart button to the far right or keeping it minimal
-        if st.button("Start Over", key="nav_reset", type="secondary"):
-            reset_survey()
-
-    # 3. OPTIONS RENDERER
+    # 2. OPTIONS RENDERER
     def render_compact(title, time, display_text, col_key, label_base, context, s_id, green=False, express=False, dist=None):
         
         # Build Metadata HTML
@@ -309,25 +307,19 @@ else:
         if dist: meta_html += f" <span class='badge-dist'>📍 {dist}</span>"
         if green: meta_html += f" <span class='badge-green'>🌿 Fossil Free</span>"
         
-        # Helper to format price cleanly
         def format_pay_text(txt):
-            # 1. Remove "SEK" and "Pay" (case insensitive) to get raw number
             clean_txt = str(txt).lower().replace("sek", "").replace("pay", "").strip()
-            
-            # 2. Check for free
             if "free" in clean_txt or clean_txt == "0":
                 return "✅ FREE"
             else:
                 return f"Pay for delivery fee {clean_txt} SEK"
 
-        # Parse Buttons
         pay_btn = None
         topup_btn = None
         
         if " or Add " in display_text:
             pay_txt, add_txt = display_text.split(" or ")
             val = add_txt.replace("Add ", "")
-            
             pay_btn = format_pay_text(pay_txt)
             topup_btn = f"Add {val} to cart for free shipping" 
         else:
@@ -355,12 +347,10 @@ else:
                     if st.button(pay_btn, key=f"std_{col_key}", type="primary", use_container_width=True):
                         submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
-            
             st.markdown('</div>', unsafe_allow_html=True)
 
     # RENDER ALL OPTIONS
     render_compact("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], green=home_green)
-    
     render_compact("Express Home", "Next Day", row['Home_Exp_Display'], f"h_exp_{q_idx}", "Home_Express", row['Context_Label'], row['Scenario_ID'], express=True)
     
     l_dist = row['Locker_Distance'] if 'Locker_Distance' in row else None
@@ -370,3 +360,13 @@ else:
     
     s_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
     render_compact("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], green=shop_green, dist=s_dist)
+
+    # 3. NAVIGATION ROW (Moved to Bottom)
+    st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True) # Tiny spacer
+    nav_col1, nav_col2 = st.columns([1, 4])
+    with nav_col1:
+        if q_idx > 0:
+            st.button("⬅️ Back", on_click=go_back, key="nav_back", use_container_width=True, type="secondary")
+    with nav_col2:
+        if st.button("Start Over", key="nav_reset", type="secondary"):
+            reset_survey()
