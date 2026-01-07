@@ -8,6 +8,53 @@ import uuid
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(page_title="Checkout Survey", layout="centered")
 
+# --- CUSTOM CSS FOR COMPACT MOBILE VIEW ---
+st.markdown("""
+    <style>
+        /* 1. Shrink the main page padding */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 2rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        /* 2. Reduce gap between elements */
+        div[data-testid="stVerticalBlock"] {
+            gap: 0.3rem !important;
+        }
+        div[data-testid="column"] {
+            gap: 0 !important;
+        }
+        /* 3. Make buttons compact */
+        div.stButton > button {
+            height: 2.2rem !important; /* Smaller height */
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            font-size: 0.9rem !important;
+            margin-top: 5px !important;
+        }
+        /* 4. Compact Sticky Header */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            background-color: white;
+            padding: 10px 0;
+            border-bottom: 2px solid #f0f2f6;
+            margin-bottom: 10px;
+        }
+        /* 5. Card Styling */
+        .compact-card {
+            border-bottom: 1px solid #e6e6e6;
+            padding-bottom: 8px;
+            margin-bottom: 5px;
+        }
+        .option-title { font-size: 0.95rem; font-weight: 700; margin: 0; color: #31333F; }
+        .option-meta { font-size: 0.8rem; color: #666; margin: 0; line-height: 1.2; }
+        .badge-green { font-size: 0.75rem; color: #2e7d32; font-weight: 600; background: #edf7ed; padding: 2px 6px; border-radius: 4px; }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize Session State
 if 'session_id' not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())[:8]
@@ -25,18 +72,12 @@ if 'data_saved' not in st.session_state:
 # --- 2. GOOGLE SHEETS CONNECTION ---
 def save_to_google_sheets(answers, demographics):
     try:
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         s_dict = st.secrets["gcp_service_account"]
         creds_dict = dict(s_dict)
         creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
-
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
-        
         sheet = client.open("Survey_Responses").sheet1 
         
         rows_to_append = []
@@ -44,75 +85,50 @@ def save_to_google_sheets(answers, demographics):
         
         for item in answers:
             row = [
-                str(timestamp),
-                str(st.session_state.session_id),
-                
-                # Demographics
-                str(demographics.get('Gender', '')),
-                str(demographics.get('Age', '')),
-                str(demographics.get('Occupation', '')),
-                str(demographics.get('Education', '')),
-                str(demographics.get('Household_Size', '')),
-                str(demographics.get('Income', '')),
-                str(demographics.get('Urbanization', '')),
-                str(demographics.get('Car_Owner', '')),
-                
-                # Distances
-                str(demographics.get('Dist_Locker', '')),
-                str(demographics.get('Dist_Pickup', '')),
-                str(demographics.get('Dist_Shop', '')),
-                
-                # Habits
-                str(demographics.get('Online_Freq', '')),
+                str(timestamp), str(st.session_state.session_id),
+                str(demographics.get('Gender', '')), str(demographics.get('Age', '')),
+                str(demographics.get('Occupation', '')), str(demographics.get('Education', '')),
+                str(demographics.get('Household_Size', '')), str(demographics.get('Income', '')),
+                str(demographics.get('Urbanization', '')), str(demographics.get('Car_Owner', '')),
+                str(demographics.get('Dist_Locker', '')), str(demographics.get('Dist_Pickup', '')),
+                str(demographics.get('Dist_Shop', '')), str(demographics.get('Online_Freq', '')),
                 str(demographics.get('Categories', '')),
-                
-                # Experiment Data
-                int(item['Scenario_ID']),
-                str(item['Context']),
-                str(item['Choice'])
+                int(item['Scenario_ID']), str(item['Context']), str(item['Choice'])
             ]
             rows_to_append.append(row)
-            
         sheet.append_rows(rows_to_append)
         return True
-        
     except Exception as e:
         st.error(f"Database Error: {str(e)}")
         return False
 
 # --- 3. HELPER FUNCTIONS ---
 def submit_answer(choice_label, scenario_id, context_label):
-    clean_id = int(scenario_id) 
     st.session_state.answers.append({
-        "Scenario_ID": clean_id,
+        "Scenario_ID": int(scenario_id),
         "Context": str(context_label),
         "Choice": str(choice_label)
     })
     st.session_state.current_q += 1
-
-def go_back():
-    if st.session_state.current_q > 0:
-        st.session_state.current_q -= 1
-        if st.session_state.answers:
-            st.session_state.answers.pop()
 
 def clean_display_text(text, cart_value):
     if "Add" in str(text):
         try:
             parts = text.split("Add ")
             gap = int(parts[1])
-            if gap > (cart_value * 1.5):
-                 return text.split(" or")[0]
-        except:
-            pass
+            if gap > (cart_value * 1.5): return text.split(" or")[0]
+        except: pass
     return text
+
+def is_true(val):
+    return str(val).upper() == "TRUE"
 
 # --- 4. APP LOGIC ---
 
-# A. AUTOMATIC FILE LOAD
+# A. FILE LOAD
 if st.session_state.design_df is None:
     try:
-        df = pd.read_csv("shipping_topup_design_2.csv")
+        df = pd.read_csv("shipping_topup_design.csv")
         if 'Context_Cart_Value' in df.columns:
             st.session_state.design_df = df
             st.rerun()
@@ -120,202 +136,154 @@ if st.session_state.design_df is None:
             st.error("Error: CSV columns missing.")
             st.stop()
     except FileNotFoundError:
-        st.error("⚠️ Design file missing! Upload 'shipping_topup_design_2.csv' to GitHub.")
+        st.error("⚠️ Design file missing!")
         st.stop()
 
 # B. INTRO
 if not st.session_state.survey_started:
     st.title("📦 Checkout Experiment")
-    st.markdown("""
-    ### Welcome!
-    Imagine you are shopping online and have reached the **Checkout Page**.
-    
-    You will see **16 different shipping scenarios**. 
-    Please choose the option that fits you best for each one.
-    
-    The survey takes about **2-3 minutes**.
-    """)
-    
-    if st.button("Start Experiment", type="primary"):
+    st.write("Imagine you are at the **Checkout Page**.")
+    st.write("Choose the shipping option that fits you best.")
+    if st.button("Start Experiment", type="primary", use_container_width=True):
         st.session_state.survey_started = True
         st.rerun()
     st.stop()
 
-# --- 5. MAIN SURVEY LOOP ---
+# --- 5. MAIN LOOP ---
 df = st.session_state.design_df
 q_idx = st.session_state.current_q
 
-# C. SCENARIOS COMPLETE -> SHOW DEMOGRAPHICS FORM
+# C. DEMOGRAPHICS (Post-Survey)
 if q_idx >= len(df):
-    
-    st.success("✅ Scenarios Complete!")
-    st.markdown("### Final Step: About You")
-    st.markdown("Please answer these quick questions to finish the study.")
-    
     if not st.session_state.data_saved:
+        st.success("✅ Scenarios Complete!")
+        st.write("### Final Step: About You")
         with st.form("demographics_form"):
             col1, col2 = st.columns(2)
             with col1:
-                gender = st.selectbox("Gender", ["Female", "Male", "Non-binary", "Prefer not to say"])
-                age = st.selectbox("Age Group", ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"])
-                edu = st.selectbox("Education", ["High School", "Bachelor's", "Master's", "PhD", "Other"])
-                occ = st.selectbox("Occupation", ["Student", "Employed", "Self-employed", "Unemployed", "Retired"])
+                gender = st.selectbox("Gender", ["Female", "Male", "Non-binary", "Other"])
+                age = st.selectbox("Age", ["18-24", "25-34", "35-44", "45-54", "55+"])
+                occ = st.selectbox("Occupation", ["Student", "Employed", "Retired", "Other"])
             with col2:
-                hh_size = st.number_input("Household Size", min_value=1, max_value=10, step=1)
-                income = st.selectbox("Monthly Household Income (SEK)", ["< 25,000", "25,000 - 45,000", "45,000 - 65,000", "> 65,000", "Prefer not to say"])
-                urban = st.selectbox("Living Area", ["Urban (inside cordon)", "Suburban", "Rural"])
-                car = st.radio("Do you own a car?", ["Yes", "No"], horizontal=True)
-
-            st.markdown("---")
-            st.markdown("**Your Location Context**")
-            dist_locker = st.selectbox("Distance to nearest Parcel Locker", ["< 500 m", "500 m - 1 km", "1 - 3 km", "> 3 km"])
-            dist_pickup = st.selectbox("Distance to nearest Service Point (Ombud)", ["< 500 m", "500 m - 1 km", "1 - 3 km", "> 3 km"])
-            dist_shop = st.selectbox("Distance to nearest Shopping Center", ["< 1 km", "1 - 5 km", "5 - 10 km", "> 10 km"])
-
-            st.markdown("---")
-            st.markdown("**Shopping Habits**")
-            freq = st.selectbox("Frequency of Online Shopping", [
-                "Daily or almost daily", 
-                "Several times a week", 
-                "Once a week", 
-                "2-3 times a month", 
-                "Once a month", 
-                "Less than once a month"
-            ])
-            cats = st.multiselect("What do you usually buy online?", [
-                "Clothing/Fashion", 
-                "Electronics", 
-                "Barnprodukter & leksaker", 
-                "Groceries", 
-                "Home & Decor", 
-                "Beauty/Health", 
-                "Books/Media", 
-                "Other"
-            ])
-
-            st.markdown("---")
-            submitted = st.form_submit_button("Submit & Finish", type="primary")
+                urban = st.selectbox("Living Area", ["Urban (Center)", "Suburban", "Rural"])
+                car = st.radio("Car Owner?", ["Yes", "No"], horizontal=True)
+                income = st.selectbox("Income (SEK)", ["<25k", "25k-45k", "45k-65k", ">65k"])
             
-            if submitted:
+            st.markdown("---")
+            edu = st.selectbox("Education", ["High School", "Bachelor's", "Master's", "PhD", "Other"])
+            hh_size = st.number_input("Household Size", 1, 10, 1)
+            dist_locker = st.selectbox("Distance to Locker", ["<500m", "500m-1km", "1-3km", ">3km"])
+            dist_pickup = st.selectbox("Distance to Service Point", ["<500m", "500m-1km", "1-3km", ">3km"])
+            dist_shop = st.selectbox("Distance to Shop Center", ["<1km", "1-5km", "5-10km", ">10km"])
+            
+            st.markdown("---")
+            freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
+            cats = st.multiselect("Categories", ["Fashion", "Electronics", "Kids/Toys", "Groceries", "Home", "Other"])
+            
+            if st.form_submit_button("Submit & Finish", type="primary", use_container_width=True):
                 demographics = {
-                    "Gender": gender, "Age": age, "Education": edu,
-                    "Occupation": occ, "Household_Size": hh_size, "Income": income,
-                    "Urbanization": urban, "Car_Owner": car, 
-                    "Dist_Locker": dist_locker, "Dist_Pickup": dist_pickup, "Dist_Shop": dist_shop,
-                    "Online_Freq": freq, "Categories": ", ".join(cats)
+                    "Gender": gender, "Age": age, "Education": edu, "Occupation": occ,
+                    "Household_Size": hh_size, "Income": income, "Urbanization": urban,
+                    "Car_Owner": car, "Dist_Locker": dist_locker, "Dist_Pickup": dist_pickup,
+                    "Dist_Shop": dist_shop, "Online_Freq": freq, "Categories": ", ".join(cats)
                 }
-                
-                with st.spinner("Saving your responses..."):
-                    success = save_to_google_sheets(st.session_state.answers, demographics)
-                    if success:
-                        st.session_state.data_saved = True
-                        st.rerun() 
-                    else:
-                        st.error("⚠️ Connection Error. Please download the backup CSV.")
+                save_to_google_sheets(st.session_state.answers, demographics)
+                st.session_state.data_saved = True
+                st.rerun()
 
-    # D. SUCCESS SCREEN
     if st.session_state.data_saved:
         st.balloons()
-        st.success("🎉 Thank you! Your responses have been saved.")
-        st.write("You can close this tab now.")
-        
-        if st.button("Start New Session"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+        st.success("🎉 Done! You can close this tab.")
+        if st.button("New Session"):
+            for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
 
 else:
-    # E. EXPERIMENT SCENARIOS
-    col_back, col_prog = st.columns([1, 4])
-    with col_back:
-        if q_idx > 0:
-            if st.button("⬅️ Back"):
-                go_back()
-                st.rerun()
-    with col_prog:
-        st.progress((q_idx) / len(df))
-        st.caption(f"Question {q_idx + 1} of {len(df)}")
-
+    # E. COMPACT SCENARIOS
     row = df.iloc[q_idx]
     cart_val = row['Context_Cart_Value']
     home_disp = clean_display_text(row['Home_Display'], cart_val)
     
-    # 🌿 SUSTAINABILITY FLAGS
-    home_is_green = row['Home_Is_Green'] if 'Home_Is_Green' in row else False
-    locker_is_green = row['Locker_Is_Green'] if 'Locker_Is_Green' in row else False
-    
-    # NEW: Check if Shop_Is_Green exists in CSV (safeguard)
-    shop_is_green = row['Shop_Is_Green'] if 'Shop_Is_Green' in row else False
+    # Attributes
+    home_green = is_true(row['Home_Is_Green']) if 'Home_Is_Green' in df.columns else False
+    locker_green = is_true(row['Locker_Is_Green']) if 'Locker_Is_Green' in df.columns else False
+    shop_green = is_true(row['Shop_Is_Green']) if 'Shop_Is_Green' in df.columns else False
 
+    # 1. STICKY HEADER (Saves Space)
     st.markdown(f"""
-    <div style="background-color:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:20px; border: 1px solid #ddd;">
-        <h3 style="margin:0; color:#333;">🛒 Cart Total: <b>{cart_val} SEK</b></h3>
-        <p style="margin:0; color:#666;">Select your preferred delivery method below.</p>
+    <div class="sticky-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:1.1rem; font-weight:bold;">🛒 Cart: {cart_val} SEK</span>
+            <span style="font-size:0.8rem; color:#888;">{q_idx + 1}/{len(df)}</span>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    def render_option_row(title, subtitle, display_text, col_key, label_base, context_label, scenario_id, 
-                          is_green=False, is_express=False, distance=None):
+    # 2. COMPACT RENDERER (Single HTML Block)
+    def render_compact(title, time, display_text, col_key, label_base, context, s_id, green=False, express=False, dist=None):
+        # Build the HTML String
+        icon = "⚡" if express else ""
+        green_html = '<span class="badge-green">🌿 Fossil Free</span>' if green else ""
+        dist_html = f"• 📍 {dist}" if dist else ""
+        
+        # Determine button labels
+        pay_btn = None
+        topup_btn = None
+        
+        if " or Add " in display_text:
+            pay_txt, add_txt = display_text.split(" or ")
+            val = add_txt.replace("Add ", "")
+            pay_btn = pay_txt # "Pay 59"
+            topup_btn = f"➕ Add {val} (Free Ship)"
+        else:
+            if "FREE" in display_text.upper():
+                pay_btn = f"✅ FREE"
+            else:
+                pay_btn = f"{display_text}"
+
         with st.container():
-            c1, c2 = st.columns([1.6, 1])
+            # Use columns to separate Text (Left) from Buttons (Right)
+            # 65% Text / 35% Buttons works well on mobile
+            c1, c2 = st.columns([2, 1.2]) 
+            
             with c1:
-                if is_express:
-                    st.markdown(f"#### ⚡ {title}")
-                else:
-                    st.markdown(f"#### {title}")
-                
-                details = f"**⏱️ {subtitle}**"
-                if distance:
-                    details += f" &nbsp;•&nbsp; **📍 {distance}**"
-                st.markdown(details, unsafe_allow_html=True)
-                
-                # 🌿 GREEN BADGE RENDERER
-                if is_green:
-                    st.markdown("🌿 <span style='color:#2e7d32; font-weight:bold;'>Fossil Free Delivery</span>", unsafe_allow_html=True)
-
+                # Dense HTML Block
+                st.markdown(f"""
+                <div class="compact-card">
+                    <p class="option-title">{icon} {title}</p>
+                    <p class="option-meta">⏱️ {time} {dist_html}</p>
+                    {green_html}
+                </div>
+                """, unsafe_allow_html=True)
+            
             with c2:
-                st.write("") 
-                if " or Add " in display_text:
-                    pay_text, add_text = display_text.split(" or ")
-                    val_only = add_text.replace("Add ", "")
-                    
-                    btn_label = f"➕ Add {val_only} SEK\nGet FREE Delivery"
-                    if st.button(btn_label, key=f"btn_add_{col_key}", use_container_width=True):
-                        submit_answer(f"{label_base}_TOPUP", scenario_id, context_label)
+                # Buttons
+                if topup_btn:
+                    if st.button(topup_btn, key=f"add_{col_key}", type="primary", use_container_width=True):
+                        submit_answer(f"{label_base}_TOPUP", s_id, context)
                         st.rerun()
-                    
-                    if st.button(f"{pay_text}", key=f"btn_pay_{col_key}", use_container_width=True):
-                        submit_answer(f"{label_base}_PAID", scenario_id, context_label)
+                    if st.button(pay_btn, key=f"pay_{col_key}", use_container_width=True):
+                        submit_answer(f"{label_base}_PAID", s_id, context)
                         st.rerun()
-
                 else:
-                    if "FREE" in display_text.upper():
-                        btn_label = f"✅ FREE Shipping"
-                        style_type = "secondary"
-                    else:
-                        btn_label = f"{display_text}"
-                        style_type = "secondary"
+                    # Single Button (Vertical align it to look nice)
+                    st.write("") # Spacer
+                    btn_type = "secondary"
+                    if "FREE" in str(pay_btn): btn_type = "secondary"
                     
-                    if st.button(btn_label, key=f"btn_std_{col_key}", type=style_type, use_container_width=True):
-                        submit_answer(f"{label_base}_FLAT", scenario_id, context_label)
+                    if st.button(pay_btn, key=f"std_{col_key}", type=btn_type, use_container_width=True):
+                        submit_answer(f"{label_base}_FLAT", s_id, context)
                         st.rerun()
-            st.divider()
 
-    # RENDER ROWS WITH SUSTAINABILITY FLAGS
+    # RENDER ROWS
+    render_compact("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], green=home_green)
     
-    # 1. Standard Home (Can be Green)
-    render_option_row("Standard Home", "2-4 Days", home_disp, f"h_std_{q_idx}", "Home_Standard", row['Context_Label'], row['Scenario_ID'], is_green=home_is_green)
+    render_compact("Express Home", "Next Day", row['Home_Exp_Display'], f"h_exp_{q_idx}", "Home_Express", row['Context_Label'], row['Scenario_ID'], express=True)
     
-    # 2. Express Home (Never Green)
-    render_option_row("Express Home", "Next Day", row['Home_Exp_Display'], f"h_exp_{q_idx}", "Home_Express", row['Context_Label'], row['Scenario_ID'], is_express=True)
+    l_dist = row['Locker_Distance'] if 'Locker_Distance' in row else None
+    render_compact("Parcel Locker", "2-4 Days", row['Locker_Display'], f"l_std_{q_idx}", "Locker_Standard", row['Context_Label'], row['Scenario_ID'], green=locker_green, dist=l_dist)
     
-    # 3. Standard Locker (Can be Green + Has Distance)
-    locker_dist = row['Locker_Distance'] if 'Locker_Distance' in row else None
-    render_option_row("Parcel Locker", "2-4 Days", row['Locker_Display'], f"l_std_{q_idx}", "Locker_Standard", row['Context_Label'], row['Scenario_ID'], is_green=locker_is_green, distance=locker_dist)
+    render_compact("Express Locker", "Next Day", row['Locker_Exp_Display'], f"l_exp_{q_idx}", "Locker_Express", row['Context_Label'], row['Scenario_ID'], express=True, dist=l_dist)
     
-    # 4. Express Locker (Never Green + Has Distance)
-    render_option_row("Express Locker", "Next Day", row['Locker_Exp_Display'], f"l_exp_{q_idx}", "Locker_Express", row['Context_Label'], row['Scenario_ID'], is_express=True, distance=locker_dist)
-    
-    # 5. Store Collect (Has Distance + NOW HAS GREEN LOGIC)
-    shop_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
-    render_option_row("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], distance=shop_dist, is_green=shop_is_green)
+    s_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
+    render_compact("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], green=shop_green, dist=s_dist)
