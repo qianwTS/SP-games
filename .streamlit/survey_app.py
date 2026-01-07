@@ -8,16 +8,38 @@ import uuid
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(page_title="Checkout Survey", layout="centered", initial_sidebar_state="collapsed")
 
-# --- CSS FOR COMPACT MOBILE UI ---
+# --- CSS FOR COMPACT MOBILE UI & VISIBILITY FIXES ---
 st.markdown("""
     <style>
-        /* 1. FORCE LIGHT MODE & RESET */
+        /* 1. FORCE LIGHT MODE BACKGROUND */
         .stApp {
             background-color: #ffffff !important; 
             color: #000000 !important;
         }
         
-        /* 2. CONTAINER PADDING */
+        /* 2. CRITICAL FORM VISIBILITY FIXES (For Demographics Page) */
+        /* Forces all labels (Gender, Age, etc.) to be black */
+        .stSelectbox label, .stNumberInput label, .stRadio label, p {
+            color: #000000 !important;
+        }
+        
+        /* Forces the selected text inside dropdowns to be black */
+        .stSelectbox div[data-baseweb="select"] div {
+            color: #000000 !important;
+        }
+        
+        /* Forces the dropdown pop-up menu text to be black */
+        ul[data-baseweb="menu"] li {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+        }
+        
+        /* Forces number input text to be black */
+        input[type="number"] {
+            color: #000000 !important;
+        }
+        
+        /* 3. CONTAINER PADDING */
         .block-container {
             padding-top: 0.5rem !important;
             padding-bottom: 2rem !important;
@@ -25,16 +47,16 @@ st.markdown("""
             padding-right: 0.5rem !important;
         }
         
-        /* 3. STICKY HEADER (HIGH VISIBILITY) */
+        /* 4. STICKY HEADER (RED HIGHLIGHT) */
         .sticky-header {
             position: fixed;
-            top: 50px; /* Adjust if needed */
+            top: 50px; 
             left: 0; 
             right: 0;
             z-index: 9999;
-            background-color: #fff0f0; /* Very light red background tint */
+            background-color: #fff0f0; 
             padding: 12px 15px;
-            border-bottom: 3px solid #d32f2f; /* Thick Red Border */
+            border-bottom: 3px solid #d32f2f; 
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -42,12 +64,10 @@ st.markdown("""
             max-width: 700px;
             margin: 0 auto;
         }
-        
-        /* THE RED TEXT */
         .header-text { 
-            font-size: 1.25rem; /* Larger Font */
+            font-size: 1.25rem; 
             font-weight: 900; 
-            color: #d32f2f !important; /* BRIGHT RED */
+            color: #d32f2f !important; 
             margin: 0; 
         }
         .header-sub { 
@@ -59,18 +79,18 @@ st.markdown("""
         /* Spacer */
         .header-spacer { height: 80px; }
 
-        /* 4. OPTION ROW */
+        /* 5. OPTION ROW */
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
             padding: 5px 0;
         }
         
-        /* 5. TYPOGRAPHY */
+        /* 6. TYPOGRAPHY */
         .opt-title { font-size: 0.95rem; font-weight: 700; color: #000 !important; line-height: 1.1; margin-bottom: 2px; }
         .opt-meta  { font-size: 0.75rem; color: #444 !important; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
         
-        /* 6. BADGES */
+        /* 7. BADGES */
         .badge-green {
             background-color: #e8f5e9;
             color: #1b5e20 !important;
@@ -88,7 +108,7 @@ st.markdown("""
             border-radius: 4px;
         }
 
-        /* 7. BUTTON STYLING */
+        /* 8. BUTTON STYLING */
         button[kind="primary"] {
             background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
@@ -115,8 +135,8 @@ st.markdown("""
             border-color: #adadad !important;
             color: #000 !important;
         }
-
-        /* Hide Streamlit Header */
+        
+        /* Hide Header */
         header {visibility: hidden;} 
         .sticky-header { top: 0px !important; } 
     </style>
@@ -258,7 +278,16 @@ if q_idx >= len(df):
             
             st.markdown("---")
             freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
-            cats = st.multiselect("Categories", ["Fashion", "Electronics", "Kids/Toys", "Groceries", "Home", "Other"])
+            cats = st.multiselect("Most purchased categories?", [
+                "Groceries",
+                "Home & Living",
+                "Electronics",
+                "Pharmacy & Health",
+                "Sports & Leisure",
+                "Clothing & Footwear",
+                "Books & Media",
+                "Other"
+            ])
             
             if st.form_submit_button("Submit & Finish", type="primary", use_container_width=True):
                 demographics = {
@@ -300,7 +329,6 @@ else:
     # 2. OPTIONS RENDERER
     def render_compact(title, time, display_text, col_key, label_base, context, s_id, green=False, express=False, dist=None):
         
-        # Build Metadata HTML
         icon = "⚡" if express else ""
         meta_html = f"<span>⏱️ {time}</span>"
         if dist: meta_html += f" <span class='badge-dist'>📍 {dist}</span>"
