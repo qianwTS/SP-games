@@ -25,43 +25,45 @@ st.markdown("""
             padding-right: 0.5rem !important;
         }
         
-        /* 3. STICKY HEADER */
+        /* 3. STICKY HEADER (HIGH VISIBILITY) */
         .sticky-header {
             position: fixed;
             top: 50px; /* Adjust if needed */
             left: 0; 
             right: 0;
             z-index: 9999;
-            background-color: #ffffff;
-            padding: 10px 15px;
-            border-bottom: 2px solid #4CAF50;
+            background-color: #fff0f0; /* Very light red background tint */
+            padding: 12px 15px;
+            border-bottom: 3px solid #d32f2f; /* Thick Red Border */
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
             max-width: 700px;
             margin: 0 auto;
         }
+        
+        /* THE RED TEXT */
         .header-text { 
-            font-size: 1.1rem; 
-            font-weight: 800; 
-            color: #000; 
+            font-size: 1.25rem; /* Larger Font */
+            font-weight: 900; 
+            color: #d32f2f !important; /* BRIGHT RED */
             margin: 0; 
         }
         .header-sub { 
             font-size: 0.85rem; 
             color: #555; 
-            font-weight: 500;
+            font-weight: 600;
         }
         
         /* Spacer */
-        .header-spacer { height: 70px; }
+        .header-spacer { height: 80px; }
 
         /* 4. OPTION ROW */
         .option-row {
             background-color: #ffffff;
             border-bottom: 1px solid #eee;
-            padding: 5px 0; /* Reduced padding further */
+            padding: 5px 0;
         }
         
         /* 5. TYPOGRAPHY */
@@ -87,8 +89,6 @@ st.markdown("""
         }
 
         /* 7. BUTTON STYLING */
-        
-        /* Primary (Green) Buttons */
         button[kind="primary"] {
             background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
@@ -101,11 +101,10 @@ st.markdown("""
             line-height: 1.2 !important;
         }
         
-        /* Secondary (Back/Reset) Buttons - FORCED VISIBILITY */
         button[kind="secondary"] {
-            background-color: #f0f2f6 !important; /* Light Grey Background */
-            border: 1px solid #d1d5db !important; /* Visible Border */
-            color: #31333F !important; /* Dark Grey Text */
+            background-color: #f0f2f6 !important;
+            border: 1px solid #d1d5db !important;
+            color: #31333F !important;
             padding: 0.3rem 0.5rem !important;
             font-size: 0.8rem !important;
             height: auto !important;
@@ -117,7 +116,7 @@ st.markdown("""
             color: #000 !important;
         }
 
-        /* Hide Streamlit Header Elements to save space */
+        /* Hide Streamlit Header */
         header {visibility: hidden;} 
         .sticky-header { top: 0px !important; } 
     </style>
@@ -361,8 +360,8 @@ else:
     s_dist = row['Shop_Distance'] if 'Shop_Distance' in row else None
     render_compact("Store Collect", "2-4 Days", row['Shop_Display'], f"s_col_{q_idx}", "Shop_Collect", row['Context_Label'], row['Scenario_ID'], green=shop_green, dist=s_dist)
 
-    # 3. NAVIGATION ROW (Moved to Bottom)
-    st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True) # Tiny spacer
+    # 3. NAVIGATION ROW (At Bottom)
+    st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
     nav_col1, nav_col2 = st.columns([1, 4])
     with nav_col1:
         if q_idx > 0:
