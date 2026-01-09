@@ -277,7 +277,7 @@ if q_idx == 0 and not st.session_state.intro_1_seen:
     st.markdown('<div class="context-card">', unsafe_allow_html=True)
     
     # Image: Folded Clothes/T-shirt (Unsplash)
-    st.image("https://github.com/qianwTS/SP-games/blob/main/.streamlit/pic1.png", use_container_width=True)
+    st.image("pic1.png", use_container_width=True)
     
     st.markdown("""
         <div class="context-text-area">
@@ -299,7 +299,7 @@ elif q_idx == 8 and not st.session_state.intro_2_seen:
     st.markdown('<div class="context-card">', unsafe_allow_html=True)
     
     # Image: Jeans/Denim (Unsplash)
-    st.image("https://github.com/qianwTS/SP-games/blob/main/.streamlit/pic2.png", use_container_width=True)
+    st.image("pic2.png", use_container_width=True)
     
     st.markdown("""
         <div class="context-text-area">
