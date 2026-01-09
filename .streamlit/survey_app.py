@@ -17,20 +17,32 @@ st.markdown("""
             color: #000000 !important;
         }
         
-        /* 2. FIX INPUT BOX BACKGROUNDS */
+        /* 2. FIX INPUT BOX BACKGROUNDS (Crucial for visibility) */
         .stSelectbox div[data-baseweb="select"] > div,
         .stMultiSelect div[data-baseweb="select"] > div {
             background-color: #ffffff !important;
             color: #000000 !important;
             border-color: #d1d5db !important;
         }
+        
+        /* Forces the text inside the box to be Black */
         .stSelectbox div[data-baseweb="select"] span,
         .stMultiSelect div[data-baseweb="select"] span {
             color: #000000 !important;
         }
+
+        /* Fix for the Dropdown Menu Options */
         ul[data-baseweb="menu"] { background-color: #ffffff !important; }
         ul[data-baseweb="menu"] li { background-color: #ffffff !important; color: #000000 !important; }
         ul[data-baseweb="menu"] li:hover { background-color: #f0f2f6 !important; }
+
+        /* Fix for MultiSelect Tags */
+        .stMultiSelect div[data-baseweb="tag"] {
+            background-color: #e0e0e0 !important;
+        }
+        .stMultiSelect div[data-baseweb="tag"] span {
+            color: #000000 !important;
+        }
 
         /* General Labels */
         .stSelectbox label, .stNumberInput label, .stRadio label, .stMultiSelect label, p {
@@ -46,7 +58,7 @@ st.markdown("""
             padding-right: 0.5rem !important;
         }
         
-        /* 4. STICKY HEADER */
+        /* 4. STICKY HEADER (RED HIGHLIGHT) */
         .sticky-header {
             position: fixed;
             top: 50px; 
@@ -94,7 +106,7 @@ st.markdown("""
             border-radius: 4px;
         }
 
-        /* 7. BUTTONS */
+        /* 7. BUTTON STYLING */
         button[kind="primary"] {
             background-color: #2e7d32 !important;
             border-color: #2e7d32 !important;
@@ -116,6 +128,7 @@ st.markdown("""
             min-height: 0px !important;
             margin-top: 0px !important;
         }
+        button[kind="secondary"]:hover { border-color: #adadad !important; color: #000 !important; }
         
         /* 8. CONTEXT PAGE STYLES */
         .context-card {
@@ -256,20 +269,20 @@ if not st.session_state.survey_started:
 df = st.session_state.design_df
 q_idx = st.session_state.current_q
 
-# === C. CONTEXT PAGES WITH IMAGES ===
+# === C. CONTEXT PAGES (FASHION FOR BOTH) ===
 
-# Context Page 1: Pharmacy (Most common low-value category)
+# Context Page 1: Low Value (Fashion Basics)
 if q_idx == 0 and not st.session_state.intro_1_seen:
     
     st.markdown('<div class="context-card">', unsafe_allow_html=True)
     
-    # Image: Pharmacy/Health products (Unsplash)
-    st.image("https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=800&q=80", use_container_width=True)
+    # Image: Folded Clothes/T-shirt (Unsplash)
+    st.image("https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=800&q=80", use_container_width=True)
     
     st.markdown("""
         <div class="context-text-area">
-            <div class="context-title">Part 1: Pharmacy</div>
-            <div class="context-desc">Imagine you are refilling your medicine cabinet (vitamins, skincare, etc).</div>
+            <div class="context-title">Part 1: Fashion Basics</div>
+            <div class="context-desc">Imagine you are buying a T-shirt or accessories.</div>
             <div class="context-price">Cart Total: 240 SEK</div>
         </div>
         </div>
@@ -280,18 +293,18 @@ if q_idx == 0 and not st.session_state.intro_1_seen:
         st.rerun()
     st.stop()
 
-# Context Page 2: Electronics (Common high-value category)
+# Context Page 2: High Value (Fashion Upgrade)
 elif q_idx == 8 and not st.session_state.intro_2_seen:
     
     st.markdown('<div class="context-card">', unsafe_allow_html=True)
     
-    # Image: Electronics/Headphones (Unsplash)
-    st.image("https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80", use_container_width=True)
+    # Image: Jeans/Denim (Unsplash)
+    st.image("https://images.unsplash.com/photo-1542272617-08f083157f0d?auto=format&fit=crop&w=800&q=80", use_container_width=True)
     
     st.markdown("""
         <div class="context-text-area">
-            <div class="context-title">Part 2: Electronics</div>
-            <div class="context-desc">New scenario! Imagine you are buying a new pair of headphones.</div>
+            <div class="context-title">Part 2: Fashion Upgrade</div>
+            <div class="context-desc">New scenario! Imagine you are buying a new pair of jeans or a jacket.</div>
             <div class="context-price">Cart Total: 750 SEK</div>
         </div>
         </div>
@@ -331,7 +344,7 @@ if q_idx >= len(df):
             st.markdown("---")
             freq = st.selectbox("Online Shop Freq", ["Daily", "Weekly", "Monthly", "Rarely"])
             
-            # --- UPDATED SWEDISH CATEGORIES ---
+            # --- SWEDISH CATEGORIES ---
             cats = st.multiselect("Most purchased categories?", [
                 "Apotek & Hälsa", 
                 "Kläder & Skor", 
