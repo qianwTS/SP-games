@@ -283,7 +283,7 @@ if q_idx == 0 and not st.session_state.intro_1_seen:
         <div class="context-text-area">
             <div class="context-title">Part 1: Fashion Basics</div>
             <div class="context-desc">Imagine you are buying a T-shirt or accessories.</div>
-            <div class="context-price">Cart Total: 240 SEK</div>
+            <div class="context-price">Cart Total: 250 SEK</div>
         </div>
         </div>
     """, unsafe_allow_html=True)
