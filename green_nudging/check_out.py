@@ -80,7 +80,7 @@ def save_to_google_sheets(answers, demographics):
         client = gspread.authorize(creds)
         
         # Open the specific sheet. Ensure 'Survey_Responses' exists in your Drive.
-        sheet = client.open("Survey_Responses").sheet1 
+        sheet = client.open("Survey_greendelivery_nudging").sheet1 
         
         rows = []
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
