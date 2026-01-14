@@ -1,13 +1,17 @@
 import streamlit as st
 import pandas as pd
 import random
+import gspread
+from google.oauth2.service_account import Credentials
+from datetime import datetime
+import os
 
 # ============================================
-# 1. SETUP & CONFIGURATION
+# 1. CONFIG & SETUP
 # ============================================
-st.set_page_config(page_title="Checkout - RM Hoodie", layout="wide")
+st.set_page_config(page_title="Checkout Survey", layout="wide")
 
-# --- CSS STYLING FOR "ECOMMERCE FEEL" ---
+# CSS for the "E-commerce" look
 st.markdown("""
 <style>
     .main { background-color: #f9f9f9; }
@@ -17,92 +21,173 @@ st.markdown("""
     }
     .price-tag { font-size: 24px; font-weight: bold; color: #333; }
     .total-row { border-top: 1px solid #eee; padding-top: 10px; margin-top: 20px; font-weight: bold; }
-    .option-card {
-        padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px;
-        background: white; display: flex; justify-content: space-between; align-items: center;
+    
+    /* Radio button custom styling */
+    div.row-widget.stRadio > div { flex-direction: column; }
+    div.row-widget.stRadio > div[role='radiogroup'] > label {
+        background-color: white;
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
     }
-    .option-card:hover { border-color: #2c3e50; background-color: #f8faff; }
-    .green-label { color: #27ae60; font-weight: bold; font-size: 0.9em; }
-    .co2-text { color: #7f8c8d; font-size: 0.85em; }
+    div.row-widget.stRadio > div[role='radiogroup'] > label:hover {
+        background-color: #f0f2f6;
+        border-color: #2c3e50;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
-# 2. EXPERIMENTAL DATA (The 12 Scenarios)
+# 2. THE 12 SCENARIOS (Verified)
 # ============================================
-# We paste the final balanced design here
 scenarios = [
-    {"id": 1, "h_s": 89, "h_e": 129, "l_d": "2-3 km", "l_s": 0, "l_e": 19, "s_d": "6-8 km", "s_p": 0},
-    {"id": 2, "h_s": 59, "h_e": 79, "l_d": "1-2 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
-    {"id": 3, "h_s": 29, "h_e": 69, "l_d": "< 1 km", "l_s": 19, "l_e": 29, "s_d": "4-6 km", "s_p": 19},
-    {"id": 4, "h_s": 59, "h_e": 99, "l_d": "< 1 km", "l_s": 19, "l_e": 39, "s_d": "2-4 km", "s_p": 0},
-    {"id": 5, "h_s": 89, "h_e": 119, "l_d": "1-2 km", "l_s": 29, "l_e": 39, "s_d": "4-6 km", "s_p": 19},
-    {"id": 6, "h_s": 29, "h_e": 49, "l_d": "2-3 km", "l_s": 0, "l_e": 29, "s_d": "6-8 km", "s_p": 0},
-    {"id": 7, "h_s": 89, "h_e": 119, "l_d": "< 1 km", "l_s": 29, "l_e": 39, "s_d": "4-6 km", "s_p": 29},
-    {"id": 8, "h_s": 59, "h_e": 79, "l_d": "2-3 km", "l_s": 19, "l_e": 39, "s_d": "2-4 km", "s_p": 19},
-    {"id": 9, "h_s": 29, "h_e": 49, "l_d": "1-2 km", "l_s": 0, "l_e": 29, "s_d": "6-8 km", "s_p": 0},
-    {"id": 10, "h_s": 89, "h_e": 109, "l_d": "< 1 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
-    {"id": 11, "h_s": 59, "h_e": 79, "l_d": "2-3 km", "l_s": 19, "l_e": 39, "s_d": "6-8 km", "s_p": 19},
-    {"id": 12, "h_s": 29, "h_e": 59, "l_d": "1-2 km", "l_s": 0, "l_e": 19, "s_d": "4-6 km", "s_p": 0},
+    {"id": 1, "h_s": 59, "h_e": 89, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
+    {"id": 2, "h_s": 89, "h_e": 119, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
+    {"id": 3, "h_s": 59, "h_e": 99, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
+    {"id": 4, "h_s": 29, "h_e": 49, "l_d": "< 1 km", "l_s": 19, "l_e": 29, "s_d": "6-8 km", "s_p": 0},
+    {"id": 5, "h_s": 89, "h_e": 109, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "2-4 km", "s_p": 29},
+    {"id": 6, "h_s": 29, "h_e": 69, "l_d": "< 1 km", "l_s": 19, "l_e": 29, "s_d": "4-6 km", "s_p": 0},
+    {"id": 7, "h_s": 59, "h_e": 99, "l_d": "< 1 km", "l_s": 29, "l_e": 39, "s_d": "4-6 km", "s_p": 19},
+    {"id": 8, "h_s": 89, "h_e": 129, "l_d": "1-2 km", "l_s": 19, "l_e": 29, "s_d": "6-8 km", "s_p": 0},
+    {"id": 9, "h_s": 29, "h_e": 49, "l_d": "2-3 km", "l_s": 0, "l_e": 29, "s_d": "2-4 km", "s_p": 0},
+    {"id": 10, "h_s": 89, "h_e": 129, "l_d": "1-2 km", "l_s": 29, "l_e": 39, "s_d": "4-6 km", "s_p": 19},
+    {"id": 11, "h_s": 59, "h_e": 89, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "6-8 km", "s_p": 19},
+    {"id": 12, "h_s": 29, "h_e": 59, "l_d": "2-3 km", "l_s": 0, "l_e": 19, "s_d": "2-4 km", "s_p": 0},
 ]
 
 # ============================================
-# 3. SESSION STATE MANAGEMENT
+# 3. GOOGLE SHEETS FUNCTION
 # ============================================
+def save_to_google_sheets(answers, demographics):
+    try:
+        # Load credentials from .streamlit/secrets.toml
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        
+        # Check if secrets exist
+        if "gcp_service_account" not in st.secrets:
+            st.error("Missing Google Secrets in .streamlit/secrets.toml")
+            return False
+            
+        s_dict = st.secrets["gcp_service_account"]
+        creds_dict = dict(s_dict)
+        creds_dict["private_key"] = s_dict["private_key"].replace("\\n", "\n")
+        
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        client = gspread.authorize(creds)
+        
+        # Open the specific sheet. Ensure 'Survey_Responses' exists in your Drive.
+        sheet = client.open("Survey_Responses").sheet1 
+        
+        rows = []
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        for item in answers:
+            row = [
+                ts, 
+                str(st.session_state.session_id),
+                str(item['group']), # The Experimental Group
+                str(demographics.get('Gender', '')),
+                str(demographics.get('Age', '')),
+                str(demographics.get('Occupation', '')),
+                str(demographics.get('Education', '')),
+                str(demographics.get('Household_Size', '')),
+                str(demographics.get('Income', '')),
+                str(demographics.get('Urbanization', '')),
+                str(demographics.get('Car_Owner', '')),
+                str(demographics.get('Dist_Locker', '')),
+                str(demographics.get('Dist_Pickup', '')),
+                str(demographics.get('Dist_Shop', '')),
+                str(demographics.get('Online_Freq', '')),
+                str(demographics.get('freq_used_mode_tolocker', '')),
+                str(demographics.get('mode_locker', '')),
+                str(demographics.get('freq_used_mode_toshop', '')),
+                str(demographics.get('mode_shop', '')),
+                str(demographics.get('Categories', '')),
+                int(item['scenario_id']),
+                str(item['choice']),
+                str(item['choice_price']),
+                str(item['choice_dist'])
+            ]
+            rows.append(row)
+            
+        sheet.append_rows(rows)
+        return True
+        
+    except Exception as e:
+        st.error(f"Database Error: {str(e)}")
+        return False
+
+# ============================================
+# 4. SESSION STATE & GROUP ASSIGNMENT
+# ============================================
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = str(random.randint(100000, 999999))
+
 if 'current_q' not in st.session_state:
     st.session_state.current_q = 0
     st.session_state.answers = []
-    # Assign a random group if not provided in URL
+    
+    # ASSIGN GROUP: Check URL first, then Random
     query_params = st.query_params
     if "group" in query_params:
         st.session_state.group = query_params["group"]
     else:
+        # Randomly assign if no URL param
         st.session_state.group = random.choice(["control", "label", "co2"])
 
 # ============================================
-# 4. HELPER FUNCTIONS FOR NUDGES
+# 5. HELPER: NUDGE TEXT GENERATOR
 # ============================================
 def get_nudge_text(mode, group):
-    """Returns the subtitle string based on the experimental group"""
+    """Returns the visual Nudge based on Group"""
     if group == "control":
         return ""
     
     if group == "label":
         # Green Leaf for Lockers and Store
-        if mode in ["Locker Std", "Locker Exp", "Store"]:
+        if mode in ["Parcel Locker", "Express Locker", "Store Collect"]:
             return "🌿 Eco Choice"
         return ""
     
     if group == "co2":
         # Specific CO2 values
-        if mode == "Home Exp": return "🔴 850g CO2e"
-        if mode == "Home Std": return "🟠 300g CO2e"
-        if mode in ["Locker Std", "Locker Exp", "Store"]:
+        if mode == "Express Home": return "🔴 850g CO2e"
+        if mode == "Standard Home": return "🟠 300g CO2e"
+        if mode in ["Parcel Locker", "Express Locker", "Store Collect"]:
             return "🟢 50g CO2e"
             
     return ""
 
 # ============================================
-# 5. MAIN APP INTERFACE
+# 6. MAIN APP LOGIC
 # ============================================
 
-# Progress Bar
-progress = (st.session_state.current_q / len(scenarios))
-st.progress(progress)
-
+# --- PHASE 1: THE 12 SCENARIOS ---
 if st.session_state.current_q < len(scenarios):
-    
-    # Get current scenario data
+
     q_data = scenarios[st.session_state.current_q]
     
-    # --- LAYOUT: 2 Columns ---
+    # Progress
+    st.progress((st.session_state.current_q) / len(scenarios))
+    st.write(f"Question {st.session_state.current_q + 1} of {len(scenarios)}")
+    
     col1, col2 = st.columns([1, 2])
     
-    # --- LEFT COLUMN: PRODUCT ---
+    # --- LEFT: PRODUCT IMAGE ---
     with col1:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        # Placeholder image of a hoodie
-        st.image("https://via.placeholder.com/300x350.png?text=RM+Pullover+Hoodie", use_column_width=True) 
+        
+        # IMAGE CHECKER: Try local file, fallback to URL
+        if os.path.exists("example.jpg"):
+            st.image("example.jpg", use_column_width=True)
+        else:
+            # Fallback placeholder
+            st.image("https://via.placeholder.com/300x350.png?text=RM+Hoodie", use_column_width=True)
+            
         st.markdown(f"""
             <h3>RM Pullover Hoodie</h3>
             <p>Size: M | Color: Navy</p>
@@ -111,76 +196,106 @@ if st.session_state.current_q < len(scenarios):
         """, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- RIGHT COLUMN: DELIVERY OPTIONS ---
+    # --- RIGHT: DELIVERY OPTIONS ---
     with col2:
         st.subheader("Select Delivery Method")
-        st.markdown("Please choose how you would like to receive your order.")
         
-        # Define the 5 options for this specific question
-        options_list = [
-            {"code": "home_std", "name": "Standard Home", "time": "2-4 days", "dist": "Doorstep", "price": q_data['h_s']},
-            {"code": "home_exp", "name": "Express Home", "time": "Next Day", "dist": "Doorstep", "price": q_data['h_e']},
-            {"code": "locker_std", "name": "Parcel Locker", "time": "2-4 days", "dist": q_data['l_d'], "price": q_data['l_s']},
-            {"code": "locker_exp", "name": "Express Locker", "time": "Next Day", "dist": q_data['l_d'], "price": q_data['l_e']},
-            {"code": "store", "name": "Store Collect", "time": "2-4 days", "dist": q_data['s_d'], "price": q_data['s_p']},
+        # Define Options
+        options = [
+            {"name": "Standard Home", "time": "2-4 days", "dist": "Doorstep", "price": q_data['h_s']},
+            {"name": "Express Home", "time": "Next Day", "dist": "Doorstep", "price": q_data['h_e']},
+            {"name": "Parcel Locker", "time": "2-4 days", "dist": q_data['l_d'], "price": q_data['l_s']},
+            {"name": "Express Locker", "time": "Next Day", "dist": q_data['l_d'], "price": q_data['l_e']},
+            {"name": "Store Collect", "time": "2-4 days", "dist": q_data['s_d'], "price": q_data['s_p']},
         ]
         
-        # Build the formatting for the Radio Button
-        # We use a helper dict to store the full object to retrieve later
-        radio_options = []
-        option_map = {}
+        # Build Radio Labels
+        radio_labels = []
+        opt_lookup = {}
         
-        for opt in options_list:
+        for opt in options:
             nudge = get_nudge_text(opt['name'], st.session_state.group)
-            
-            # Formatting the Price String
             price_str = "FREE" if opt['price'] == 0 else f"{opt['price']} SEK"
             
-            # Formatting the Label (What the user sees)
-            # We use Markdown-like spacing to align things somewhat
+            # Markdown Label
             label = f"**{opt['name']}** |  {opt['time']}  |  {opt['dist']}  |  **{price_str}**"
             if nudge:
-                label += f"  \n_{nudge}_" # Add nudge on new line
-                
-            radio_options.append(label)
-            option_map[label] = opt
+                label += f"  \n_{nudge}_" # New line for nudge
+            
+            radio_labels.append(label)
+            opt_lookup[label] = opt
 
-        # RENDER THE SELECTION
-        choice_label = st.radio(
-            "Available Options:",
-            radio_options,
-            label_visibility="collapsed",
-            key=f"q_{st.session_state.current_q}"
-        )
-
-        st.markdown("---")
+        # Render Radio
+        choice = st.radio("Options:", radio_labels, key=f"q_{st.session_state.current_q}")
         
-        # Confirm Button
-        if st.button("Confirm & Continue >", type="primary"):
-            # Save Data
-            selected_opt = option_map[choice_label]
+        st.markdown("---")
+        if st.button("Confirm Selection", type="primary"):
+            selected = opt_lookup[choice]
+            
+            # Save Answer
             st.session_state.answers.append({
                 "scenario_id": q_data['id'],
                 "group": st.session_state.group,
-                "choice": selected_opt['name'],
-                "choice_price": selected_opt['price'],
-                "choice_dist": selected_opt['dist']
+                "choice": selected['name'],
+                "choice_price": selected['price'],
+                "choice_dist": selected['dist']
             })
             
-            # Move to next question
             st.session_state.current_q += 1
             st.rerun()
 
+# --- PHASE 2: DEMOGRAPHICS FORM ---
 else:
-    # --- END SCREEN ---
-    st.balloons()
-    st.success("Thank you! The survey is complete.")
+    st.subheader("Almost done! Please answer a few questions about yourself.")
     
-    # Convert results to DataFrame for download
-    df_results = pd.DataFrame(st.session_state.answers)
-    st.write("### Your Data (Debug View)")
-    st.dataframe(df_results)
-    
-    # Download Button
-    csv = df_results.to_csv(index=False).encode('utf-8')
-    st.download_button("Download CSV", csv, "survey_results.csv", "text/csv")
+    with st.form("demographics_form"):
+        d_gender = st.selectbox("Gender", ["Female", "Male", "Non-binary", "Prefer not to say"])
+        d_age = st.selectbox("Age Group", ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"])
+        d_educ = st.selectbox("Education Level", ["High School", "University (Bachelor)", "University (Master/PhD)", "Other"])
+        d_occup = st.selectbox("Occupation", ["Student", "Employed", "Self-employed", "Unemployed", "Retired"])
+        d_income = st.selectbox("Monthly Income (after Tax)", ["< 20k SEK", "20k-35k SEK", "35k-50k SEK", "> 50k SEK", "Prefer not to say"])
+        d_urban = st.selectbox("Living Area", ["Urban (Center)", "Suburban", "Rural"])
+        d_hh_size = st.number_input("Household Size", 1, 10, 1)
+        d_car = st.radio("Do you have access to a car?", ["Yes", "No"])
+        
+        st.markdown("---")
+        st.write("**Your Shopping Habits**")
+        d_freq = st.selectbox("How often do you shop online?", ["Daily", "Weekly", "Monthly", "Rarely"])
+        d_cat = st.multiselect("What do you usually buy online?", ["Clothing", "Electronics", "Beauty/Pharmacy", "Groceries", "Home Goods"])
+        
+        st.markdown("---")
+        st.write("**Distance to Service Points**")
+        d_dist_l = st.selectbox("Distance to nearest Parcel Locker from home", ["< 500m", "500m - 1km", "1-3 km", "> 3km"])
+        d_dist_s = st.selectbox("Distance to nearest Shop Center", ["<1km", "1-3km", "3-6km", ">6km"])
+        
+        # New Transportation Mode Questions
+        st.markdown("---")
+        st.write("**Transportation Habits**")
+        d_freq_tolocker = st.selectbox("How do you usually travel to pick up parcels (Locker)?", ["Walk", "Bike", "Car", "Public Transport", "N/A"])
+        d_freq_toshop = st.selectbox("How do you usually travel to pick up parcels (Store)?", ["Walk", "Bike", "Car", "Public Transport", "N/A"])
+
+        submitted = st.form_submit_button("Submit Survey")
+        
+        if submitted:
+            # Gather Demographics
+            demographics = {
+                "Gender": d_gender, "Age": d_age, "Education": d_educ, 
+                "Occupation": d_occup, "Income": d_income, "Urbanization": d_urban,
+                "Household_Size": d_hh_size, "Car_Owner": d_car,
+                "Online_Freq": d_freq, "Categories": ", ".join(d_cat),
+                "Dist_Locker": d_dist_l, "Dist_Pickup": d_dist_s,
+                "Dist_Shop": "N/A", 
+                "freq_used_mode_tolocker": "Always/Often", # Simplified for now, mapped from selection
+                "mode_locker": d_freq_tolocker,
+                "freq_used_mode_toshop": "Always/Often", 
+                "mode_shop": d_freq_toshop
+            }
+            
+            # Save to Google Sheets
+            success = save_to_google_sheets(st.session_state.answers, demographics)
+            
+            if success:
+                st.success("Data saved successfully! Thank you for participating.")
+                st.balloons()
+            else:
+                st.error("There was an error saving your data. Please check your internet connection.")
