@@ -229,20 +229,35 @@ if st.session_state.current_q < len(scenarios):
         choice = st.radio("Options:", radio_labels, key=f"q_{st.session_state.current_q}")
         
         st.markdown("---")
-        if st.button("Confirm Selection", type="primary"):
-            selected = opt_lookup[choice]
-            
-            # Save Answer
-            st.session_state.answers.append({
-                "scenario_id": q_data['id'],
-                "group": st.session_state.group,
-                "choice": selected['name'],
-                "choice_price": selected['price'],
-                "choice_dist": selected['dist']
-            })
-            
-            st.session_state.current_q += 1
-            st.rerun()
+       # --- NEW NAVIGATION COLUMNS ---
+        nav_col1, nav_col2 = st.columns(2)
+        
+        # BACK BUTTON (Only shows if it's NOT the first question)
+        with nav_col1:
+            if st.session_state.current_q > 0:
+                if st.button("⬅️ Go Back", use_container_width=True):
+                    # Reduce question counter by 1
+                    st.session_state.current_q -= 1
+                    # Remove the previous answer to avoid duplicates
+                    if len(st.session_state.answers) > 0:
+                        st.session_state.answers.pop()
+                    st.rerun()
+                    
+        # NEXT BUTTON
+        with nav_col2:
+            if st.button("Confirm Selection ➡️", type="primary", use_container_width=True):
+                selected = opt_lookup[choice]
+                
+                st.session_state.answers.append({
+                    "scenario_id": q_data['id'],
+                    "group": st.session_state.group,
+                    "choice": selected['name'],
+                    "choice_price": selected['price'],
+                    "choice_dist": selected['dist']
+                })
+                
+                st.session_state.current_q += 1
+                st.rerun()
 
 # --- PHASE 2: DEMOGRAPHICS FORM ---
 else:
