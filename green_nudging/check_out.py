@@ -182,15 +182,15 @@ if st.session_state.current_q < len(scenarios):
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
         
         # IMAGE CHECKER: Try local file, fallback to URL
-        if os.path.exists("headset.jpg"):
-            st.image("headset.jpg", use_column_width=True)
+        if os.path.exists("headset.png"):
+            st.image("headset.png", use_column_width=True)
         else:
             # Fallback placeholder
-            st.image("https://via.placeholder.com/300x350.png?text=RM+Hoodie", use_column_width=True)
+            st.image("https://via.placeholder.com/300x350.png?text=RM+Headset", use_column_width=True)
             
         st.markdown(f"""
-            <h3>RM Pullover Hoodie</h3>
-            <p>Size: M | Color: Navy</p>
+            <h3>RM Headset</h3>
+            <p>Brand: X | Batterytime: X</p>
             <div class="price-tag">499 SEK</div>
             <div class="total-row">Subtotal: 499 SEK</div>
         """, unsafe_allow_html=True)
