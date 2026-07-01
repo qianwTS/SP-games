@@ -272,8 +272,8 @@ elif st.session_state.stage == "b2c_survey":
         
         with col1:
             st.markdown('<div class="product-card">', unsafe_allow_html=True)
-            if os.path.exists("example.jpg"):
-                st.image("example.jpg", use_column_width=True)
+            if os.path.exists("headset.png"):
+                st.image("headset.png", use_column_width=True)
             else:
                 st.image("https://via.placeholder.com/300x350.png?text=RM+Hoodie", use_column_width=True)
                 
