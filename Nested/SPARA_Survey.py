@@ -49,7 +49,19 @@ scenarios = [
     {"id": 11, "h_s": 59, "h_e": 89, "l_d": "2-3 km", "l_s": 29, "l_e": 39, "s_d": "6-8 km", "s_p": 19},
     {"id": 12, "h_s": 29, "h_e": 59, "l_d": "2-3 km", "l_s": 0, "l_e": 19, "s_d": "2-4 km", "s_p": 0},
 ]
-
+# B2B (Företag) - 10 Scenarier (Pall 5000 SEK)
+b2b_scenarios = [
+    {"id": 1, "sd_p": 499, "nd_p": 299, "2d_p": 0},
+    {"id": 2, "sd_p": 499, "nd_p": 499, "2d_p": 0},
+    {"id": 3, "sd_p": 499, "nd_p": 0,   "2d_p": 0},
+    {"id": 4, "sd_p": 299, "nd_p": 299, "2d_p": 0},
+    {"id": 5, "sd_p": 499, "nd_p": 299, "2d_p": 299},
+    {"id": 6, "sd_p": 299, "nd_p": 0,   "2d_p": 0},
+    {"id": 7, "sd_p": 499, "nd_p": 499, "2d_p": 299},
+    {"id": 8, "sd_p": 499, "nd_p": 299, "2d_p": 0},
+    {"id": 9, "sd_p": 299, "nd_p": 299, "2d_p": 299},
+    {"id": 10, "sd_p": 499, "nd_p": 0,  "2d_p": 0},
+]
 # ============================================
 # 3. GOOGLE SHEETS FUNCTIONS
 # ============================================
@@ -98,14 +110,35 @@ def save_b2b_to_google_sheets(b2b_data):
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Flatten lists into comma-separated strings for Google Sheets
-        flat_data = [ts, str(st.session_state.session_id)]
-        for key, val in b2b_data.items():
-            if isinstance(val, list):
-                flat_data.append(", ".join(val))
-            else:
-                flat_data.append(str(val))
+        #flat_data = [ts, str(st.session_state.session_id)]
+        #for key, val in b2b_data.items():
+        #    if isinstance(val, list):
+        #        flat_data.append(", ".join(val))
+        #    else:
+        #        flat_data.append(str(val))
                 
-        sheet.append_row(flat_data)
+        #sheet.append_row(flat_data)
+        #return True
+    #except Exception as e:
+        #st.error(f"Database Error: {str(e)}")
+        #return False
+        for item in answers:
+            # Formatera multiselects till strängar
+            b4_str = ", ".join(b2b_demo.get("B4", [])) if isinstance(b2b_demo.get("B4"), list) else str(b2b_demo.get("B4", ""))
+            c2_str = ", ".join(b2b_demo.get("C2_Faktorer", [])) if isinstance(b2b_demo.get("C2_Faktorer"), list) else str(b2b_demo.get("C2_Faktorer", ""))
+            d2_str = ", ".join(b2b_demo.get("D2", [])) if isinstance(b2b_demo.get("D2"), list) else str(b2b_demo.get("D2", ""))
+
+            row = [
+                ts, str(st.session_state.session_id), str(item['group']),
+                str(b2b_demo.get('A1', '')), str(b2b_demo.get('A2', '')), str(b2b_demo.get('A3', '')), str(b2b_demo.get('A4', '')),
+                str(b2b_demo.get('B1_Webb', '')), str(b2b_demo.get('B1_Epost', '')), str(b2b_demo.get('B1_Tel', '')), str(b2b_demo.get('B1_Butik', '')),
+                str(b2b_demo.get('B2', '')), str(b2b_demo.get('B3', '')), b4_str,
+                str(b2b_demo.get('C1_Butik', '')), str(b2b_demo.get('C1_Direkt', '')), str(b2b_demo.get('C1_BoxArb', '')), str(b2b_demo.get('C1_BoxAnnat', '')),
+                c2_str, str(b2b_demo.get('D1', '')), d2_str, str(b2b_demo.get('D3', '')),
+                int(item['scenario_id']), str(item['choice']), str(item['choice_price'])
+            ]
+            rows.append(row)
+        sheet.append_rows(rows)
         return True
     except Exception as e:
         st.error(f"Database Error: {str(e)}")
@@ -121,10 +154,16 @@ if 'session_id' not in st.session_state:
 if 'stage' not in st.session_state:
     st.session_state.stage = "intro"
 
-if 'current_q' not in st.session_state:
-    st.session_state.current_q = 0
-    st.session_state.answers = []
+if 'b2c_current_q' not in st.session_state:
+    st.session_state.b2c_current_q = 0
+    st.session_state.b2c_answers = []
+
+if 'b2b_current_q' not in st.session_state:
+    st.session_state.b2b_current_q = 0
+    st.session_state.b2b_answers = []
+    st.session_state.b2b_demographics = {}
     
+if 'group' not in st.session_state:
     query_params = st.query_params
     if "group" in query_params:
         st.session_state.group = query_params["group"]
@@ -137,7 +176,7 @@ if 'current_q' not in st.session_state:
 def set_stage(stage_name):
     st.session_state.stage = stage_name
 
-def get_nudge_text(mode, group):
+def get_b2c_nudge_text(mode, group):
     if group == "control": return ""
     if group == "label":
         if mode in ["Parcel Locker", "Express Locker", "Store Collect"]: return "🌿 Eco Choice"
@@ -146,6 +185,18 @@ def get_nudge_text(mode, group):
         if mode == "Express Home": return "🔴 850g CO2e"
         if mode == "Standard Home": return "🟠 300g CO2e"
         if mode in ["Parcel Locker", "Express Locker", "Store Collect"]: return "🟢 50g CO2e"
+    return ""
+
+def get_b2b_nudge_text(mode, group):
+    if group == "control": return ""
+    if group == "label":
+        # Green leaf only on the 0g CO2 option
+        if mode == "Inom 2 arbetsdagar": return "🌿 Miljöval"
+        return ""
+    if group == "co2":
+        if mode == "Samma dag (Tidsbestämt)": return "🔴 1500g CO2e"
+        if mode == "Nästa arbetsdag": return "🟠 400g CO2e"
+        if mode == "Inom 2 arbetsdagar": return "🟢 0g CO2e"
     return ""
 
 
@@ -193,9 +244,7 @@ elif st.session_state.stage == "routing":
 # --------------------------------------------
 # STAGE 3A: B2B UNDERSÖKNING
 # --------------------------------------------
-# --------------------------------------------
-# STAGE 3A: B2B UNDERSÖKNING
-# --------------------------------------------
+
 elif st.session_state.stage == "b2b_survey":
     st.title("Del 1: Bakgrund och Köpbeteende (B2B)")
     st.markdown("Vänligen besvara frågorna nedan. Alla frågor är obligatoriska.")
@@ -284,38 +333,100 @@ elif st.session_state.stage == "b2b_survey":
         b2b_submit = st.form_submit_button("Skicka in svar", type="primary")
         
         if b2b_submit:
-            # Lista på alla svar för validering
-            all_answers = [
-                q1, q2, q3, q4, 
-                q5_webb, q5_epost, q5_tel, q5_butik, 
-                q6, q7, q8, 
-                q9_butik, q9_direkt, q9_box_arb, q9_box_annat, 
-                q10, q11, q12, q13
-            ]
-            
-            # Kontrollera om något värde är None (för radio/selectbox) eller [] (för multiselect)
+            all_answers = [q1, q2, q3, q4, q5_webb, q5_epost, q5_tel, q5_butik, q6, q7, q8, q9_butik, q9_direkt, q9_box_arb, q9_box_annat, q10, q11, q12, q13]
             if any(a is None or (isinstance(a, list) and len(a) == 0) for a in all_answers):
-                st.error("⚠️ Vänligen besvara alla frågor (1-13) innan du skickar in.")
+                st.error("⚠️ Vänligen besvara alla frågor (1-13) innan du går vidare.")
             else:
-                # Spara datan och mappa tillbaka till de gamla A,B,C,D-rubrikerna för din Excel-fil
-                b2b_data = {
+                st.session_state.b2b_demographics = {
                     "A1": q1, "A2": q2, "A3": q3, "A4": q4,
                     "B1_Webb": q5_webb, "B1_Epost": q5_epost, "B1_Tel": q5_tel, "B1_Butik": q5_butik,
                     "B2": q6, "B3": q7, "B4": q8,
                     "C1_Butik": q9_butik, "C1_Direkt": q9_direkt, "C1_BoxArb": q9_box_arb, "C1_BoxAnnat": q9_box_annat,
-                    "C2_Faktorer": q10,
-                    "D1": q11, "D2": q12, "D3": q13
+                    "C2_Faktorer": q10, "D1": q11, "D2": q12, "D3": q13
                 }
+                set_stage("b2b_part2")
+                st.rerun()
                 
-                success = save_b2b_to_google_sheets(b2b_data)
-                if success:
-                    st.success("Tack! Dina svar är inskickade.")
-                    st.balloons()
-                    # Eventuell kod här för att skicka dem vidare till B2B-scenarierna
-                    # Valfritt: Led användaren vidare till B2C check-out simuleringen om de ska göra del 2 också:
-                    # set_stage("b2c_survey")
-                    # st.rerun()
+                
+# --------------------------------------------
+# STAGE 3B: B2B UNDERSÖKNING - DEL 2 (SCENARIER)
+# --------------------------------------------
+elif st.session_state.stage == "b2b_part2":
+    
+    if st.session_state.b2b_current_q < len(b2b_scenarios):
+        q_data = b2b_scenarios[st.session_state.b2b_current_q]
+        st.progress((st.session_state.b2b_current_q) / len(b2b_scenarios))
+        st.write(f"Scenario {st.session_state.b2b_current_q + 1} av {len(b2b_scenarios)}")
+        
+        col1, col2 = st.columns([1, 2])
+        
+        # B2B BILD OCH PRODUKT
+        with col1:
+            st.markdown('<div class="product-card">', unsafe_allow_html=True)
+            if os.path.exists("b-b.png"):
+                st.image("b-b.png", use_column_width=True)
+            else:
+                st.image("https://via.placeholder.com/300x350.png?text=Materialpall", use_column_width=True)
+                
+            st.markdown(f"""
+                <h3>Materialpall</h3>
+                <p>Blandat installationsmaterial</p>
+                <div class="price-tag">5 000 SEK</div>
+                <div class="total-row">Ordervärde: 5 000 SEK</div>
+            """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
+        # B2B LEVERANSVAL
+        with col2:
+            st.subheader("Välj leveransalternativ")
+            options = [
+                {"name": "Samma dag (Tidsbestämt)", "time": "Idag (Valfri tid)", "price": q_data['sd_p']},
+                {"name": "Nästa arbetsdag", "time": "Imorgon (08-16)", "price": q_data['nd_p']},
+                {"name": "Inom 2 arbetsdagar", "time": "Om 2 dagar (08-16)", "price": q_data['2d_p']},
+            ]
+            
+            radio_labels = []
+            opt_lookup = {}
+            for opt in options:
+                nudge = get_b2b_nudge_text(opt['name'], st.session_state.group)
+                price_str = "GRATIS" if opt['price'] == 0 else f"{opt['price']} SEK"
+                label = f"**{opt['name']}** |  {opt['time']} |  **{price_str}**"
+                if nudge: label += f"  \n_{nudge}_"
+                radio_labels.append(label)
+                opt_lookup[label] = opt
+
+            choice = st.radio("Alternativ:", radio_labels, key=f"b2bq_{st.session_state.b2b_current_q}")
+            st.markdown("---")
+            
+            nav_col1, nav_col2 = st.columns(2)
+            with nav_col1:
+                if st.session_state.b2b_current_q > 0:
+                    if st.button("⬅️ Gå tillbaka", use_container_width=True):
+                        st.session_state.b2b_current_q -= 1
+                        if len(st.session_state.b2b_answers) > 0:
+                            st.session_state.b2b_answers.pop()
+                        st.rerun()
+            with nav_col2:
+                if st.button("Bekräfta val ➡️", type="primary", use_container_width=True):
+                    selected = opt_lookup[choice]
+                    st.session_state.b2b_answers.append({
+                        "scenario_id": q_data['id'],
+                        "group": st.session_state.group,
+                        "choice": selected['name'],
+                        "choice_price": selected['price']
+                    })
+                    st.session_state.b2b_current_q += 1
+                    st.rerun()
+
+    else:
+        st.subheader("Tack för din medverkan!")
+        st.write("Klicka på knappen nedan för att skicka in dina svar till vår databas.")
+        
+        if st.button("Skicka in hela enkäten", type="primary"):
+            success = save_b2b_to_google_sheets(st.session_state.b2b_answers, st.session_state.b2b_demographics)
+            if success:
+                st.success("Data sparad! Du kan nu stänga fönstret.")
+                st.balloons()
 # --------------------------------------------
 # STAGE 3B: B2C CHECK-OUT SCENARIER
 # --------------------------------------------
@@ -323,17 +434,24 @@ elif st.session_state.stage == "b2c_survey":
     
     if st.session_state.current_q < len(scenarios):
         q_data = scenarios[st.session_state.current_q]
-        st.progress((st.session_state.current_q) / len(scenarios))
-        st.write(f"Scenario {st.session_state.current_q + 1} av {len(scenarios)}")
+        s# --------------------------------------------
+# STAGE 4: B2C CHECK-OUT SCENARIER (Original)
+# --------------------------------------------
+elif st.session_state.stage == "b2c_survey":
+    
+    if st.session_state.b2c_current_q < len(b2c_scenarios):
+        q_data = b2c_scenarios[st.session_state.b2c_current_q]
+        st.progress((st.session_state.b2c_current_q) / len(b2c_scenarios))
+        st.write(f"Scenario {st.session_state.b2c_current_q + 1} av {len(b2c_scenarios)}")
         
         col1, col2 = st.columns([1, 2])
         
         with col1:
             st.markdown('<div class="product-card">', unsafe_allow_html=True)
-            if os.path.exists("headset.png"):
-                st.image("headset.png", use_column_width=True)
+            if os.path.exists("example.jpg"):
+                st.image("example.jpg", use_column_width=True)
             else:
-                st.image("https://via.placeholder.com/300x350.png?text=RM+Hoodie", use_column_width=True)
+                st.image("https://via.placeholder.com/300x350.png?text=RM+Headset", use_column_width=True)
                 
             st.markdown(f"""
                 <h3>RM Headset</h3>
@@ -356,43 +474,43 @@ elif st.session_state.stage == "b2c_survey":
             radio_labels = []
             opt_lookup = {}
             for opt in options:
-                nudge = get_nudge_text(opt['name'], st.session_state.group)
+                nudge = get_b2c_nudge_text(opt['name'], st.session_state.group)
                 price_str = "FREE" if opt['price'] == 0 else f"{opt['price']} SEK"
                 label = f"**{opt['name']}** |  {opt['time']}  |  {opt['dist']}  |  **{price_str}**"
                 if nudge: label += f"  \n_{nudge}_"
                 radio_labels.append(label)
                 opt_lookup[label] = opt
 
-            choice = st.radio("Options:", radio_labels, key=f"q_{st.session_state.current_q}")
+            choice = st.radio("Options:", radio_labels, key=f"b2cq_{st.session_state.b2c_current_q}")
             st.markdown("---")
             
             nav_col1, nav_col2 = st.columns(2)
             with nav_col1:
-                if st.session_state.current_q > 0:
+                if st.session_state.b2c_current_q > 0:
                     if st.button("⬅️ Go Back", use_container_width=True):
-                        st.session_state.current_q -= 1
-                        if len(st.session_state.answers) > 0:
-                            st.session_state.answers.pop()
+                        st.session_state.b2c_current_q -= 1
+                        if len(st.session_state.b2c_answers) > 0:
+                            st.session_state.b2c_answers.pop()
                         st.rerun()
             with nav_col2:
                 if st.button("Confirm Selection ➡️", type="primary", use_container_width=True):
                     selected = opt_lookup[choice]
-                    st.session_state.answers.append({
+                    st.session_state.b2c_answers.append({
                         "scenario_id": q_data['id'],
                         "group": st.session_state.group,
                         "choice": selected['name'],
                         "choice_price": selected['price'],
                         "choice_dist": selected['dist']
                     })
-                    st.session_state.current_q += 1
+                    st.session_state.b2c_current_q += 1
                     st.rerun()
 
     else:
         # B2C DEMOGRAFISKT FORMULÄR
         st.subheader("Almost done! Please answer a few questions about yourself.")
         if st.button("⬅️ Go Back to Last Scenario"):
-            st.session_state.current_q -= 1
-            if len(st.session_state.answers) > 0: st.session_state.answers.pop()
+            st.session_state.b2c_current_q -= 1
+            if len(st.session_state.b2c_answers) > 0: st.session_state.b2c_answers.pop()
             st.rerun()
             
         with st.form("demographics_form"):
@@ -426,7 +544,7 @@ elif st.session_state.stage == "b2c_survey":
                     "mode_locker": d_freq_tolocker, "mode_shop": d_freq_toshop
                 }
                 
-                success = save_b2c_to_google_sheets(st.session_state.answers, demographics)
+                success = save_b2c_to_google_sheets(st.session_state.b2c_answers, demographics)
                 if success:
                     st.success("Data saved successfully! Thank you for participating.")
                     st.balloons()
