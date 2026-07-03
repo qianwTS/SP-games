@@ -193,70 +193,128 @@ elif st.session_state.stage == "routing":
 # --------------------------------------------
 # STAGE 3A: B2B UNDERSÖKNING
 # --------------------------------------------
+# --------------------------------------------
+# STAGE 3A: B2B UNDERSÖKNING
+# --------------------------------------------
 elif st.session_state.stage == "b2b_survey":
     st.title("Del 1: Bakgrund och Köpbeteende (B2B)")
+    st.markdown("Vänligen besvara frågorna nedan. Alla frågor är obligatoriska.")
     
     with st.form("b2b_form"):
-        st.subheader("A. Bakgrund och klassificering")
-        a1 = st.selectbox("A1. Vilken typ av verksamhet representerar du i den här enkäten?", 
-                          ["Huvudentreprenör", "Underentreprenör", "Installatör", "Fastighetsägare/förvaltare", "Återförsäljare/grossist", "Annat"])
-        a2 = st.selectbox("A2. Hur många anställda har ert företag totalt?", ["1 (endast jag)", "2–9", "10–49", "50–249", "250 eller fler"])
-        a3 = st.selectbox("A3. Vilken är din huvudsakliga yrkesroll?", ["Inköpare/inköpsansvarig", "Projektledare", "Hantverkare/montör/installatör", "Arbetsledare/platschef", "VD/ägare", "Lagerchef/lageransvarig", "Annat"])
-        a4 = st.selectbox("A4. Hur många års erfarenhet har du av branschen?", ["0–2 år", "3–5 år", "6–10 år", "11–20 år", "Mer än 20 år"])
+        # Vanliga valfrågor (Selectbox) med tomma startvärden
+        q1 = st.selectbox(
+            "1. Vilken typ av verksamhet representerar du i den här enkäten?", 
+            ["Huvudentreprenör", "Underentreprenör", "Installatör", "Fastighetsägare/förvaltare", "Återförsäljare/grossist", "Annat"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q2 = st.selectbox(
+            "2. Hur många anställda har ert företag totalt?", 
+            ["1 (endast jag)", "2–9", "10–49", "50–249", "250 eller fler"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q3 = st.selectbox(
+            "3. Vilken är din huvudsakliga yrkesroll?", 
+            ["Inköpare/inköpsansvarig", "Projektledare", "Hantverkare/montör/installatör", "Arbetsledare/platschef", "VD/ägare", "Lagerchef/lageransvarig", "Annat"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q4 = st.selectbox(
+            "4. Hur många års erfarenhet har du av branschen?", 
+            ["0–2 år", "3–5 år", "6–10 år", "11–20 år", "Mer än 20 år"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
         
         st.markdown("---")
-        st.subheader("B. Köpbeteende och beställningskanaler")
-        st.write("B1. Hur ofta använder du följande sätt att lägga en beställning?")
-        b1_webb = st.select_slider("Webbutik/app", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        b1_epost = st.select_slider("E-post", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        b1_tel = st.select_slider("Telefon", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        b1_butik = st.select_slider("I butik", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
+        # Skalfrågor omgjorda till klickbara Radio-knappar (horisontella)
+        st.write("**5. Hur ofta använder du följande sätt att lägga en beställning?**")
+        scale_options = ["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"]
         
-        b2 = st.selectbox("B2. Hur långt i förväg vet du vanligtvis om ett kommande materialbehov, innan en beställning behöver läggas?", 
-                          ["Samma dag", "1–2 dagar i förväg", "3–7 dagar i förväg", "Mer än en vecka i förväg", "Varierar mycket från fall till fall"])
-        b3 = st.selectbox("B3. Hur ofta lägger ni vanligtvis en beställning hos er huvudsakliga leverantör?", 
-                          ["Flera gånger per dag", "Dagligen", "Några gånger per vecka", "Veckovis", "Månadsvis", "Mer sällan"])
-        b4 = st.multiselect("B4. Vilken typ av gods köper ni oftast?", 
-                            ["Litet paket (får plats i brevlåda)", "Kan bäras för hand (större än brevlåda)", "Kräver kärra eller truck", "Pall", "Kräver kran eller specialtransport", "Varierar mycket"])
+        q5_webb = st.radio("5a. Webbutik/app", options=scale_options, index=None, horizontal=True)
+        q5_epost = st.radio("5b. E-post", options=scale_options, index=None, horizontal=True)
+        q5_tel = st.radio("5c. Telefon", options=scale_options, index=None, horizontal=True)
+        q5_butik = st.radio("5d. I butik", options=scale_options, index=None, horizontal=True)
+        
+        st.markdown("---")
+        q6 = st.selectbox(
+            "6. Hur långt i förväg vet du vanligtvis om ett kommande materialbehov, innan en beställning behöver läggas?", 
+            ["Samma dag", "1–2 dagar i förväg", "3–7 dagar i förväg", "Mer än en vecka i förväg", "Varierar mycket från fall till fall"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q7 = st.selectbox(
+            "7. Hur ofta lägger ni vanligtvis en beställning hos er huvudsakliga leverantör?", 
+            ["Flera gånger per dag", "Dagligen", "Några gånger per vecka", "Veckovis", "Månadsvis", "Mer sällan"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q8 = st.multiselect(
+            "8. Vilken typ av gods köper ni oftast? (Flera val möjliga)", 
+            ["Litet paket (får plats i brevlåda)", "Kan bäras för hand (större än brevlåda)", "Kräver kärra eller truck", "Pall", "Kräver kran eller specialtransport", "Varierar mycket"],
+            placeholder="Välj alternativ i listan nedan..."
+        )
 
         st.markdown("---")
-        st.subheader("C. Leverans – nuvarande mönster och preferenser")
-        st.write("C1. Med vilken frekvens används följande leveranssätt för era leveranser?")
-        c1_butik = st.select_slider("Upphämtning i butik", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        c1_direkt = st.select_slider("Direktleverans till arbetsplatsen (utan box)", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        c1_box_arb = st.select_slider("Låsbar leveransbox/container på arbetsplatsen", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        c1_box_annat = st.select_slider("Låsbar leveransbox på annat ställe än arbetsplatsen", options=["Aldrig", "Sällan", "Ibland", "Ofta", "Alltid"])
-        
-        c2 = st.multiselect("C2. Vad skulle få dig att överväga en annan leveransplats än den du normalt använder? Välj dina topp 3 anledningar.", 
-                            ["Lägre pris", "Snabbare leverans", "Mer exakt leveranstid/tidsfönster", "Mindre miljöpåverkan", "Närmare din arbetsplats", "Minskad tid för mottagning"])
+        st.write("**9. Med vilken frekvens används följande leveranssätt för era leveranser?**")
+        q9_butik = st.radio("9a. Upphämtning i butik", options=scale_options, index=None, horizontal=True)
+        q9_direkt = st.radio("9b. Direktleverans till arbetsplatsen (utan box)", options=scale_options, index=None, horizontal=True)
+        q9_box_arb = st.radio("9c. Låsbar leveransbox/container på arbetsplatsen", options=scale_options, index=None, horizontal=True)
+        q9_box_annat = st.radio("9d. Låsbar leveransbox på annat ställe än arbetsplatsen", options=scale_options, index=None, horizontal=True)
         
         st.markdown("---")
-        st.subheader("D. Relation till leverantör och inköpsmakt")
-        d1 = st.selectbox("D1. Är ni bundna av ramavtal eller upphandling som styr vilka leverantörer ni får handla från?", 
-                          ["Ja, helt styrt", "Ja, delvis styrt", "Nej, vi väljer fritt", "Vet ej"])
-        d2 = st.multiselect("D2. Vilka kriterier var avgörande när ni valde er nuvarande leverantör? Markera de tre viktigaste.", 
-                            ["Pris", "Leveranstider", "Tidigare samarbete", "Referensprojekt", "Kompetens i allmänhet", "Kompetens för det specifika projektet", "Miljöaspekter", "Leverantören finns redan i vårt system/vår organisation"], max_selections=3)
-        d3 = st.selectbox("D3. Vem betalar transporten i de flesta av era projekt/uppdrag?", 
-                          ["Vi betalar transporten separat", "Transporten ingår i produktpriset", "Beställaren av projektet står för transporten", "Vet ej"])
+        q10 = st.multiselect(
+            "10. Vad skulle få dig att överväga en annan leveransplats än den du normalt använder? Välj dina topp 3 anledningar.", 
+            ["Lägre pris", "Snabbare leverans", "Mer exakt leveranstid/tidsfönster", "Mindre miljöpåverkan", "Närmare din arbetsplats", "Minskad tid för mottagning"], 
+            max_selections=3, placeholder="Välj upp till 3 alternativ i listan nedan..."
+        )
+        
+        q11 = st.selectbox(
+            "11. Är ni bundna av ramavtal eller upphandling som styr vilka leverantörer ni får handla från?", 
+            ["Ja, helt styrt", "Ja, delvis styrt", "Nej, vi väljer fritt", "Vet ej"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
+        q12 = st.multiselect(
+            "12. Vilka kriterier var avgörande när ni valde er nuvarande leverantör? Markera de tre viktigaste.", 
+            ["Pris", "Leveranstider", "Tidigare samarbete", "Referensprojekt", "Kompetens i allmänhet", "Kompetens för det specifika projektet", "Miljöaspekter", "Leverantören finns redan i vårt system/vår organisation"], 
+            max_selections=3, placeholder="Välj upp till 3 alternativ i listan nedan..."
+        )
+        q13 = st.selectbox(
+            "13. Vem betalar transporten i de flesta av era projekt/uppdrag?", 
+            ["Vi betalar transporten separat", "Transporten ingår i produktpriset", "Beställaren av projektet står för transporten", "Vet ej"],
+            index=None, placeholder="Välj ett alternativ i listan nedan..."
+        )
 
+        # Skicka in-knapp
         b2b_submit = st.form_submit_button("Skicka in svar", type="primary")
         
         if b2b_submit:
-            b2b_data = {
-                "A1": a1, "A2": a2, "A3": a3, "A4": a4,
-                "B1_Webb": b1_webb, "B1_Epost": b1_epost, "B1_Tel": b1_tel, "B1_Butik": b1_butik,
-                "B2": b2, "B3": b3, "B4": b4,
-                "C1_Butik": c1_butik, "C1_Direkt": c1_direkt, "C1_BoxArb": c1_box_arb, "C1_BoxAnnat": c1_box_annat,
-                "C2_Faktorer": c2,
-                "D1": d1, "D2": d2, "D3": d3
-            }
-            success = save_b2b_to_google_sheets(b2b_data)
-            if success:
-                st.success("Tack! Dina svar är inskickade.")
-                st.balloons()
-                # Valfritt: Led användaren vidare till B2C check-out simuleringen om de ska göra del 2 också:
-                # set_stage("b2c_survey")
-                # st.rerun()
+            # Lista på alla svar för validering
+            all_answers = [
+                q1, q2, q3, q4, 
+                q5_webb, q5_epost, q5_tel, q5_butik, 
+                q6, q7, q8, 
+                q9_butik, q9_direkt, q9_box_arb, q9_box_annat, 
+                q10, q11, q12, q13
+            ]
+            
+            # Kontrollera om något värde är None (för radio/selectbox) eller [] (för multiselect)
+            if any(a is None or (isinstance(a, list) and len(a) == 0) for a in all_answers):
+                st.error("⚠️ Vänligen besvara alla frågor (1-13) innan du skickar in.")
+            else:
+                # Spara datan och mappa tillbaka till de gamla A,B,C,D-rubrikerna för din Excel-fil
+                b2b_data = {
+                    "A1": q1, "A2": q2, "A3": q3, "A4": q4,
+                    "B1_Webb": q5_webb, "B1_Epost": q5_epost, "B1_Tel": q5_tel, "B1_Butik": q5_butik,
+                    "B2": q6, "B3": q7, "B4": q8,
+                    "C1_Butik": q9_butik, "C1_Direkt": q9_direkt, "C1_BoxArb": q9_box_arb, "C1_BoxAnnat": q9_box_annat,
+                    "C2_Faktorer": q10,
+                    "D1": q11, "D2": q12, "D3": q13
+                }
+                
+                success = save_b2b_to_google_sheets(b2b_data)
+                if success:
+                    st.success("Tack! Dina svar är inskickade.")
+                    st.balloons()
+                    # Eventuell kod här för att skicka dem vidare till B2B-scenarierna
+                    # Valfritt: Led användaren vidare till B2C check-out simuleringen om de ska göra del 2 också:
+                    # set_stage("b2c_survey")
+                    # st.rerun()
 
 # --------------------------------------------
 # STAGE 3B: B2C CHECK-OUT SCENARIER
